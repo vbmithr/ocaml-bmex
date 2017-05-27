@@ -1,0 +1,7 @@
+(library
+ ((name        bmex_rest)
+  (public_name bmex-rest)
+  (modules (bmex_rest))
+  (preprocess (pps (ppx_sexp_conv)))
+  (libraries (core async yojson jsonm ocplib-json-typed
+                   bs-devkit cohttp-async nocrypto hex))))
