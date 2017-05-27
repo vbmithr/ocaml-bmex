@@ -3,4 +3,4 @@
   (public_name bmex)
   (modules (bmex))
   (preprocess (pps (ppx_sexp_conv)))
-  (libraries (hex core async uri nocrypto))))
+  (libraries (hex core async uri nocrypto ocplib-json-typed))))

@@ -348,7 +348,7 @@ let open_connection
   let uri = uri_of_opts testnet md in
   let auth_params = match auth with
     | None -> []
-    | Some (key, secret) -> Crypto.mk_query_params ?log ~key ~secret Ws Get uri
+    | Some (key, secret) -> Crypto.mk_query_params ?log ~key ~secret ~api:Ws ~verb:Get uri
   in
   let uri = Uri.add_query_param uri ("heartbeat", ["true"]) in
   let uri = Uri.add_query_params uri @@
