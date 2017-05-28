@@ -16,6 +16,7 @@ module Side : sig
   val to_string : t -> string
   val show : t -> string
   val pp : Format.formatter -> t -> unit
+  val encoding : t Json_encoding.encoding
 end
 
 module OrderBook : sig
@@ -39,6 +40,8 @@ module OrderBook : sig
       size: int option ;
       price: float option ;
     }
+
+    val encoding : t Json_encoding.encoding
   end
 end
 
@@ -57,12 +60,14 @@ end
 
 module Trade : sig
   type t = {
-    symbol: string;
     timestamp: Time_ns.t;
-    price: float;
-    size: int;
+    symbol: string;
     side: Side.t;
+    size: int;
+    price: float;
   }
+
+  val encoding : t Json_encoding.encoding
 end
 
 module Crypto : sig

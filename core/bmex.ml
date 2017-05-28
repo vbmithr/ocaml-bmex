@@ -31,6 +31,13 @@ module Side = struct
 
   let pp ppf side =
     Format.fprintf ppf "%s" (to_string side)
+
+  let encoding =
+    let open Json_encoding in
+    string_enum [
+      "Buy", `Buy ;
+      "Sell", `Sell ;
+    ]
 end
 
 module OrderBook = struct
@@ -54,6 +61,20 @@ module OrderBook = struct
       size: int option ;
       price: float option ;
     }
+
+    let encoding =
+      let open Json_encoding in
+      conv
+        (fun { symbol ; id ; side ; size ; price } ->
+           (symbol, id, side, size, price))
+        (fun (symbol, id, side, size, price) ->
+           { symbol ; id ; side ; size ; price })
+        (obj5
+           (req "symbol" string)
+           (req "id" int)
+           (req "side" Side.encoding)
+           (opt "size" int)
+           (opt "price" float))
   end
 end
 
@@ -82,12 +103,27 @@ end
 
 module Trade = struct
   type t = {
-    symbol: string;
     timestamp: Time_ns.t;
-    price: float;
-    size: int;
+    symbol: string;
     side: Side.t;
+    size: int;
+    price: float;
   }
+
+  let encoding =
+    let open Json_encoding in
+    conv
+      (fun { timestamp ; symbol ; side ; size ; price } ->
+         (), (timestamp, symbol, side, size, price))
+      (fun ((), (timestamp, symbol, side, size, price)) ->
+         { timestamp ; symbol ; side ; size ; price })
+      (merge_objs unit
+         (obj5
+            (req "timestamp" time_encoding)
+            (req "symbol" string)
+            (req "side" Side.encoding)
+            (req "size" int)
+            (req "price" float)))
 end
 
 module Crypto = struct
