@@ -10,7 +10,7 @@ type verb = Get | Post | Put | Delete
 val show_verb : verb -> string
 
 module Side : sig
-  type t = [`Buy | `Sell]
+  type t = [`Buy | `Sell | `Unset]
 
   val of_string : string -> t
   val to_string : t -> string
@@ -47,14 +47,15 @@ end
 
 module Quote : sig
   type t = {
-    timestamp: string;
-    symbol: string;
+    timestamp: Time_ns.t ;
+    symbol: string ;
     bidPrice: float option ;
     bidSize: int option ;
     askPrice: float option ;
     askSize: int option ;
   }
 
+  val encoding : t Json_encoding.encoding
   val merge : t -> t -> t
 end
 

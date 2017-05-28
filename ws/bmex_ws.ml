@@ -204,23 +204,23 @@ module Response = struct
     type t = {
       table : string ;
       action : action ;
-      data : Yojson.Safe.json ;
+      data : Yojson.Safe.json list ;
     }
 
     let encoding =
       let open Json_encoding in
       conv
         (fun { table ; action ; data } ->
-           let data = yojson_to_any data in
+           let data = List.map data ~f:yojson_to_any in
            (), (table, action, data))
         (fun ((), (table, action, data)) ->
-           let data = any_to_yojson data in
+           let data = List.map data ~f:any_to_yojson in
            { table ; action ; data })
         (merge_objs unit
            (obj3
               (req "table" string)
               (req "action" action_encoding)
-              (req "data" any_value)))
+              (req "data" (list any_value))))
   end
 
   module Welcome = struct
@@ -338,8 +338,8 @@ let uri_of_opts testnet md =
     (if md then "realtimemd" else "realtime")
 
 let open_connection
-    ?connected
     ?(buf=Bi_outbuf.create 4096)
+    ?connected
     ?to_ws
     ?(query_params=[])
     ?log
@@ -362,8 +362,8 @@ let open_connection
   in
   let scheme = Option.value_exn ~message:"no scheme in uri" Uri.(scheme uri) in
   let ws_w_mvar = Mvar.create () in
+  let ws_w_mvar_ro = Mvar.read_only ws_w_mvar in
   let rec try_write msg =
-    let ws_w_mvar_ro = Mvar.read_only ws_w_mvar in
     Mvar.value_available ws_w_mvar_ro >>= fun () ->
     let w = Mvar.peek_exn ws_w_mvar_ro in
     if Pipe.is_closed w then begin
@@ -397,7 +397,7 @@ let open_connection
         Log.info log "[WS] connecting to %s" uri_str);
     Socket.(setopt s Opt.nodelay true);
     (if scheme = "https" || scheme = "wss" then
-       Conduit_async_ssl.ssl_connect r w else
+       Conduit_async_ssl.ssl_connect ~version:Tlsv1_2 r w else
        return (r, w)) >>= fun (ssl_r, ssl_w) ->
     let ws_r, ws_w =
       Websocket_async.client_ez ?log
@@ -408,7 +408,7 @@ let open_connection
       cleanup ssl_r ssl_w ws_r ws_w
     end ;
     Mvar.set ws_w_mvar ws_w;
-    Option.iter connected ~f:(fun c -> Mvar.set c ());
+    Option.iter connected ~f:(fun c -> Condition.broadcast c ());
     Pipe.transfer ws_r client_w ~f:(Yojson.Safe.from_string ~buf)
   in
   let rec loop () = begin

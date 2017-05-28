@@ -16,16 +16,17 @@ let string_of_verb = function
 let show_verb = string_of_verb
 
 module Side = struct
-  type t = [`Buy | `Sell]
+  type t = [`Buy | `Sell | `Unset]
 
   let of_string = function
     | "Buy" -> `Buy
     | "Sell" -> `Sell
-    | _ -> invalid_arg "Side.of_string"
+    | _ -> `Unset
 
   let to_string = function
     | `Buy -> "Buy"
     | `Sell -> "Sell"
+    | `Unset -> ""
 
   let show = to_string
 
@@ -37,6 +38,7 @@ module Side = struct
     string_enum [
       "Buy", `Buy ;
       "Sell", `Sell ;
+      "", `Unset ;
     ]
 end
 
@@ -80,13 +82,28 @@ end
 
 module Quote = struct
   type t = {
-    timestamp: string;
-    symbol: string;
+    timestamp: Time_ns.t ;
+    symbol: string ;
     bidPrice: float option ;
     bidSize: int option ;
     askPrice: float option ;
     askSize: int option ;
   }
+
+  let encoding =
+    let open Json_encoding in
+    conv
+      (fun { timestamp ; symbol ; bidPrice ; bidSize ; askPrice ; askSize } ->
+         (timestamp, symbol, bidPrice, bidSize, askPrice, askSize))
+      (fun (timestamp, symbol, bidPrice, bidSize, askPrice, askSize) ->
+      { timestamp ; symbol ; bidPrice ; bidSize ; askPrice ; askSize })
+      (obj6
+         (req "timestamp" time_encoding)
+         (req "symbol" string)
+         (req "bidPrice" (option float))
+         (req "bidSize" (option int))
+         (req "askPrice" (option float))
+         (req "askSize" (option int)))
 
   let merge t t' =
     if t.symbol <> t'.symbol then invalid_arg "Quote.merge: symbols do not match";
