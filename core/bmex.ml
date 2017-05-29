@@ -16,17 +16,16 @@ let string_of_verb = function
 let show_verb = string_of_verb
 
 module Side = struct
-  type t = [`Buy | `Sell | `Unset]
+  type t = [`Buy | `Sell]
 
   let of_string = function
-    | "Buy" -> `Buy
-    | "Sell" -> `Sell
-    | _ -> `Unset
+    | "Buy" -> Some `Buy
+    | "Sell" -> Some `Sell
+    | _ -> None
 
   let to_string = function
     | `Buy -> "Buy"
     | `Sell -> "Sell"
-    | `Unset -> ""
 
   let show = to_string
 
@@ -36,9 +35,9 @@ module Side = struct
   let encoding =
     let open Json_encoding in
     string_enum [
-      "Buy", `Buy ;
-      "Sell", `Sell ;
-      "", `Unset ;
+      "Buy", Some `Buy ;
+      "Sell", Some `Sell ;
+      "", None ;
     ]
 end
 
@@ -59,7 +58,7 @@ module OrderBook = struct
     type t = {
       symbol: string ;
       id: int ;
-      side: Side.t ;
+      side: Side.t option ;
       size: int option ;
       price: float option ;
     }
@@ -122,7 +121,7 @@ module Trade = struct
   type t = {
     timestamp: Time_ns.t;
     symbol: string;
-    side: Side.t;
+    side: Side.t option ;
     size: int;
     price: float;
   }
