@@ -37,6 +37,11 @@ module Topic : sig
     | TradeBin5m
     | TradeBin1h
     | TradeBin1d
+
+  val of_string : string -> t
+  val to_string : t -> string
+  val show : t -> string
+  val pp : Format.formatter -> t -> unit
 end
 
 module Request : sig
@@ -64,6 +69,11 @@ module Response : sig
       | Update
       | Insert
       | Delete
+
+    val action_of_string : string -> action
+    val action_to_string : action -> string
+    val show_action : action -> string
+    val pp_action : Format.formatter -> action -> unit
 
     type t = {
       table : string ;

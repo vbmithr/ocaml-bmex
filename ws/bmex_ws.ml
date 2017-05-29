@@ -44,6 +44,41 @@ module Topic = struct
     | TradeBin1h
     | TradeBin1d
 
+  let of_string = function
+    | "privateNotifications" -> PrivateNotifications
+    | "account" -> Account
+    | "wallet" -> Wallet
+    | "affiliate" -> Affiliate
+    | "margin" -> Margin
+    | "position" -> Position
+    | "transact" -> Transact
+    | "order" -> Order
+    | "execution" -> Execution
+    | "announcement" -> Announcement
+    | "connected" -> Connected
+    | "chat" -> Chat
+    | "publicNotifications" -> PublicNotifications
+    | "instrument" -> Instrument
+    | "settlement" -> Settlement
+    | "funding" -> Funding
+    | "insurance" -> Insurance
+    | "liquidation" -> Liquidation
+    | "orderBookL2" -> OrderBookL2
+    | "orderBook" -> OrderBook
+    | "orderBook25" -> OrderBook25
+    | "orderBook10" -> OrderBook10
+    | "quote" -> Quote
+    | "trade" -> Trade
+    | "quoteBin1m" -> QuoteBin1m
+    | "quoteBin5m" -> QuoteBin5m
+    | "quoteBin1h" -> QuoteBin1h
+    | "quoteBin1d" -> QuoteBin1d
+    | "tradeBin1m" -> TradeBin1m
+    | "tradeBin5m" -> TradeBin5m
+    | "tradeBin1h" -> TradeBin1h
+    | "tradeBin1d" -> TradeBin1d
+    | _ -> invalid_arg "Topic.of_string"
+
   let to_string = function
     (* private *)
     | PrivateNotifications -> "privateNotifications"
@@ -80,40 +115,8 @@ module Topic = struct
     | TradeBin1h -> "tradeBin1h"
     | TradeBin1d -> "tradeBin1d"
 
-  let of_string = function
-    | "privateNotifications" -> PrivateNotifications
-    | "account" -> Account
-    | "wallet" -> Wallet
-    | "affiliate" -> Affiliate
-    | "margin" -> Margin
-    | "position" -> Position
-    | "transact" -> Transact
-    | "order" -> Order
-    | "execution" -> Execution
-    | "announcement" -> Announcement
-    | "connected" -> Connected
-    | "chat" -> Chat
-    | "publicNotifications" -> PublicNotifications
-    | "instrument" -> Instrument
-    | "settlement" -> Settlement
-    | "funding" -> Funding
-    | "insurance" -> Insurance
-    | "liquidation" -> Liquidation
-    | "orderBookL2" -> OrderBookL2
-    | "orderBook" -> OrderBook
-    | "orderBook25" -> OrderBook25
-    | "orderBook10" -> OrderBook10
-    | "quote" -> Quote
-    | "trade" -> Trade
-    | "quoteBin1m" -> QuoteBin1m
-    | "quoteBin5m" -> QuoteBin5m
-    | "quoteBin1h" -> QuoteBin1h
-    | "quoteBin1d" -> QuoteBin1d
-    | "tradeBin1m" -> TradeBin1m
-    | "tradeBin5m" -> TradeBin5m
-    | "tradeBin1h" -> TradeBin1h
-    | "tradeBin1d" -> TradeBin1d
-    | _ -> invalid_arg "Topic.of_string"
+  let show = to_string
+  let pp ppf t = Format.fprintf ppf "%s" (to_string t)
 end
 
 module Request = struct
@@ -191,6 +194,23 @@ module Response = struct
       | Update
       | Insert
       | Delete
+
+    let action_of_string = function
+      | "partial" -> Partial
+      | "update" -> Update
+      | "insert" -> Insert
+      | "delete" -> Delete
+      | _ -> invalid_arg "Bmex_ws.Response.Update.action_of_string"
+
+    let action_to_string = function
+      | Partial -> "partial"
+      | Update -> "update"
+      | Insert -> "insert"
+      | Delete -> "delete"
+
+    let show_action = action_to_string
+
+    let pp_action ppf t = Format.fprintf ppf "%s" (action_to_string t)
 
     let action_encoding =
       let open Json_encoding in
