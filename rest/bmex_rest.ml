@@ -190,5 +190,6 @@ let cancel_all_orders ?buf ?log ?symbol ?filter ~testnet ~key ~secret () =
   call ?buf ?log ~testnet ~key ~secret ~body ~verb:Delete "/api/v1/order/all"
 
 let cancel_all_orders_after ?buf ?log ~testnet ~key ~secret timeout =
+  let timeout = Time_ns.Span.to_int_ms timeout in
   let body = `Assoc ["timeout", `Int timeout] in
   call ?buf ?log ~testnet ~key ~secret ~body ~verb:Post "/api/v1/order/cancelAllAfter"

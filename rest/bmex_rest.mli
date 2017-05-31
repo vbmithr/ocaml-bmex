@@ -30,4 +30,4 @@ val cancel_all_orders :
 val cancel_all_orders_after :
   ?buf:Bi_outbuf.t -> ?log:Log.t ->
   testnet:bool -> key:string -> secret:Cstruct.t ->
-  int -> Yojson.Safe.json Deferred.Or_error.t
+  Time_ns.Span.t -> Yojson.Safe.json Deferred.Or_error.t
