@@ -7,6 +7,9 @@ let testnet_url = Uri.of_string "https://testnet.bitmex.com"
 let time_encoding =
   Json_encoding.(Time_ns.(conv to_string of_string string))
 
+let uint_encoding =
+  Json_encoding.ranged_int ~minimum:0 ~maximum:Int.max_value "uint"
+
 type verb = Get | Post | Put | Delete
 let string_of_verb = function
   | Get -> "GET"
@@ -72,7 +75,7 @@ module OrderBook = struct
            { symbol ; id ; side ; size ; price })
         (obj5
            (req "symbol" string)
-           (req "id" int)
+           (req "id" uint_encoding)
            (req "side" Side.encoding)
            (opt "size" int)
            (opt "price" float))
