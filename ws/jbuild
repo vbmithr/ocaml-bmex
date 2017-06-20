@@ -3,6 +3,14 @@
   (public_name bmex-ws)
   (modules (bmex_ws))
   (preprocess (pps (ppx_sexp_conv)))
-  (libraries (bmex core async yojson jsonm ocplib-json-typed
-                   bs-devkit cohttp-async nocrypto hex
-                   wamp-msgpck websocket-async))))
+  (libraries (bmex
+              core
+              async
+              yojson
+              jsonm
+              ocplib-json-typed
+              bs-devkit
+              cohttp-async
+              nocrypto
+              hex
+              websocket-async))))
