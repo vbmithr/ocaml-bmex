@@ -91,3 +91,45 @@ module Crypto : sig
     verb:verb ->
     Uri.t -> (string * string list) list
 end
+
+module OrderType : sig
+  type t = [
+    | `order_type_market
+    | `order_type_limit
+    | `order_type_stop
+    | `order_type_stop_limit
+    | `order_type_market_if_touched
+  ]
+
+  val to_string : t -> string
+  val of_string : string -> t
+end
+
+module TimeInForce : sig
+  type t = [
+    | `tif_day
+    | `tif_good_till_canceled
+    | `tif_all_or_none
+    | `tif_immediate_or_cancel
+    | `tif_fill_or_kill
+  ]
+
+  val to_string : t -> string
+  val of_string : string -> t
+end
+
+module ExecInst : sig
+  type t = [
+    | `MarkPrice
+    | `LastPrice
+    | `IndexPrice
+  ]
+
+  val to_string : t -> string
+  val of_dtc :
+    ?p1:float -> ?p2:float -> OrderType.t -> Yojson.Safe.json
+end
+
+val p1_p2_of_bitmex :
+  ord_type:OrderType.t -> stopPx:float -> price:float ->
+  float option * float option

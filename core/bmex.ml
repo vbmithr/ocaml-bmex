@@ -170,3 +170,91 @@ module Crypto = struct
       "api-signature", [signature];
     ]
 end
+
+module OrderType = struct
+  type t = [
+    | `order_type_market
+    | `order_type_limit
+    | `order_type_stop
+    | `order_type_stop_limit
+    | `order_type_market_if_touched
+  ]
+
+  let to_string = function
+    | `order_type_market -> "Market"
+    | `order_type_limit -> "Limit"
+    | `order_type_stop -> "Stop"
+    | `order_type_stop_limit -> "StopLimit"
+    | `order_type_market_if_touched -> "MarketIfTouched"
+
+  let of_string = function
+    | "Market" -> `order_type_market
+    | "Limit" -> `order_type_limit
+    | "Stop" -> `order_type_stop
+    | "StopLimit" -> `order_type_stop_limit
+    | "MarketIfTouched" -> `order_type_market_if_touched
+    | s -> invalid_argf "ord_type_of_string: %s" s ()
+end
+
+module TimeInForce = struct
+  type t = [
+    | `tif_day
+    | `tif_good_till_canceled
+    | `tif_all_or_none
+    | `tif_immediate_or_cancel
+    | `tif_fill_or_kill
+  ]
+
+  let to_string = function
+    | `tif_day -> "Day"
+    | `tif_good_till_canceled
+    | `tif_all_or_none -> "GoodTillCancel"
+    | `tif_immediate_or_cancel -> "ImmediateOrCancel"
+    | `tif_fill_or_kill -> "FillOrKill"
+
+  let of_string = function
+    | "Day" -> `tif_day
+    | "GoodTillCancel" -> `tif_good_till_canceled
+    | "ImmediateOrCancel" -> `tif_immediate_or_cancel
+    | "FillOrKill" -> `tif_fill_or_kill
+    | s -> invalid_argf "tif_of_string: %s" s ()
+end
+
+module ExecInst = struct
+  type t = [
+    | `MarkPrice
+    | `LastPrice
+    | `IndexPrice
+  ]
+
+  let to_string  = function
+  | `MarkPrice -> "MarkPrice"
+  | `LastPrice -> "LastPrice"
+  | `IndexPrice -> "IndexPrice"
+
+  let of_dtc ?p1 ?p2 ord_type =
+    let fields = match ord_type with
+      | `order_type_market -> []
+      | `order_type_limit -> begin match p1 with
+          | None -> []
+          | Some p1 -> ["price", `Float p1]
+        end
+      | `order_type_stop
+      | `order_type_market_if_touched -> begin match p1 with
+          | None -> invalid_arg "price_field_of_dtc" (* Cannot happen *)
+          | Some p1 -> ["stopPx", `Float p1]
+        end
+      | `order_type_stop_limit ->
+        List.filter_opt [
+          Option.map p1 ~f:(fun p1 -> "stopPx", `Float p1);
+          Option.map p2 ~f:(fun p2 -> "price", `Float p2);
+        ] in
+    `Assoc fields
+end
+
+let p1_p2_of_bitmex ~ord_type ~stopPx ~price = match ord_type with
+  | `order_type_market -> None, None
+  | `order_type_limit -> Some price, None
+  | `order_type_stop -> Some stopPx, None
+  | `order_type_stop_limit -> Some stopPx, Some price
+  | `order_type_market_if_touched -> Some stopPx, None
