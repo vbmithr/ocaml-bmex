@@ -173,6 +173,7 @@ end
 
 module OrderType = struct
   type t = [
+    | `order_type_unset
     | `order_type_market
     | `order_type_limit
     | `order_type_stop
@@ -186,6 +187,7 @@ module OrderType = struct
     | `order_type_stop -> "Stop"
     | `order_type_stop_limit -> "StopLimit"
     | `order_type_market_if_touched -> "MarketIfTouched"
+    | `order_type_unset -> ""
 
   let of_string = function
     | "Market" -> `order_type_market
@@ -194,18 +196,50 @@ module OrderType = struct
     | "StopLimit" -> `order_type_stop_limit
     | "MarketIfTouched" -> `order_type_market_if_touched
     | s -> invalid_argf "ord_type_of_string: %s" s ()
+
+  let encoding =
+    let open Json_encoding in
+    string_enum [
+      "Market", `order_type_market ;
+      "Limit", `order_type_limit ;
+      "Stop", `order_type_stop ;
+      "StopLimit", `order_type_stop_limit ;
+      "MarketIfTouched", `order_type_market_if_touched ;
+    ]
+
+  let to_p1_p2 ~stopPx ~price = function
+    | `order_type_unset
+    | `order_type_market -> None, None
+    | `order_type_limit -> Some price, None
+    | `order_type_stop -> Some stopPx, None
+    | `order_type_stop_limit -> Some stopPx, Some price
+    | `order_type_market_if_touched -> Some stopPx, None
+
+  let to_price_stopPx ?p1 ?p2 ordType =
+    match ordType, p1, p2 with
+    | `order_type_unset, _, _
+    | `order_type_market, _, _ -> None, None
+    | `order_type_limit, Some p, _ -> Some p, None
+    | `order_type_stop, Some p, _
+    | `order_type_market_if_touched, Some p, _ -> None, Some p
+    | `order_type_stop_limit, Some stopPx, Some limitPx -> Some limitPx, Some stopPx
+    | _ -> invalid_arg "price_fields_of_dtc"
 end
 
 module TimeInForce = struct
   type t = [
+    | `tif_unset
     | `tif_day
     | `tif_good_till_canceled
     | `tif_all_or_none
     | `tif_immediate_or_cancel
     | `tif_fill_or_kill
+    | `tif_good_till_date_time
   ]
 
   let to_string = function
+    | `tif_unset
+    | `tif_good_till_date_time
     | `tif_day -> "Day"
     | `tif_good_till_canceled
     | `tif_all_or_none -> "GoodTillCancel"
@@ -218,43 +252,95 @@ module TimeInForce = struct
     | "ImmediateOrCancel" -> `tif_immediate_or_cancel
     | "FillOrKill" -> `tif_fill_or_kill
     | s -> invalid_argf "tif_of_string: %s" s ()
+
+  let encoding =
+    let open Json_encoding in
+    string_enum [
+      "Day", `tif_day ;
+      "GoodTillCancel", `tif_good_till_canceled ;
+      "ImmediateOrCancel", `tif_immediate_or_cancel ;
+      "FillOrKill", `tif_fill_or_kill ;
+    ]
 end
 
 module ExecInst = struct
-  type t = [
-    | `MarkPrice
-    | `LastPrice
-    | `IndexPrice
-  ]
+  type t =
+    | ParticipateDoNotInitiate
+    | AllOrNone
+    | MarkPrice
+    | LastPrice
+    | IndexPrice
+    | Close
+    | ReduceOnly
+    | Fixed
 
-  let to_string  = function
-  | `MarkPrice -> "MarkPrice"
-  | `LastPrice -> "LastPrice"
-  | `IndexPrice -> "IndexPrice"
+  let to_string = function
+    | ParticipateDoNotInitiate -> "ParticipateDoNotInitiate"
+    | AllOrNone -> "AllOrNone"
+    | MarkPrice -> "MarkPrice"
+    | LastPrice -> "LastPrice"
+    | IndexPrice -> "IndexPrice"
+    | Close -> "Close"
+    | ReduceOnly -> "ReduceOnly"
+    | Fixed -> "Fixed"
 
-  let of_dtc ?p1 ?p2 ord_type =
-    let fields = match ord_type with
-      | `order_type_market -> []
-      | `order_type_limit -> begin match p1 with
-          | None -> []
-          | Some p1 -> ["price", `Float p1]
-        end
-      | `order_type_stop
-      | `order_type_market_if_touched -> begin match p1 with
-          | None -> invalid_arg "price_field_of_dtc" (* Cannot happen *)
-          | Some p1 -> ["stopPx", `Float p1]
-        end
-      | `order_type_stop_limit ->
-        List.filter_opt [
-          Option.map p1 ~f:(fun p1 -> "stopPx", `Float p1);
-          Option.map p2 ~f:(fun p2 -> "price", `Float p2);
-        ] in
-    `Assoc fields
+  let of_string = function
+    | "ParticipateDoNotInitiate" -> ParticipateDoNotInitiate
+    | "AllOrNone" -> AllOrNone
+    | "MarkPrice" -> MarkPrice
+    | "LastPrice" -> LastPrice
+    | "IndexPrice" -> IndexPrice
+    | "Close" -> Close
+    | "ReduceOnly" -> ReduceOnly
+    | "Fixed" -> Fixed
+    | _ -> invalid_arg "ExecInst.of_string"
+
+  let encoding =
+    let open Json_encoding in
+    string_enum [
+      "ParticipateDoNotInitiate", ParticipateDoNotInitiate ;
+      "AllOrNone", AllOrNone ;
+      "MarkPrice", MarkPrice ;
+      "LastPrice", LastPrice ;
+      "IndexPrice", IndexPrice ;
+      "Close", Close ;
+      "ReduceOnly", ReduceOnly ;
+      "Fixed", Fixed ;
+    ]
 end
 
-let p1_p2_of_bitmex ~ord_type ~stopPx ~price = match ord_type with
-  | `order_type_market -> None, None
-  | `order_type_limit -> Some price, None
-  | `order_type_stop -> Some stopPx, None
-  | `order_type_stop_limit -> Some stopPx, Some price
-  | `order_type_market_if_touched -> Some stopPx, None
+module ContingencyType = struct
+  type t =
+    | OCO (* OneCancelsTheOther *)
+    | OTO (* OneTriggersTheOther *)
+    | OUOA (* OneUpdatesTheOtherAbsolute *)
+    | OUOP (* OneUpdatesTheOtherProportional *)
+
+  let encoding =
+    let open Json_encoding in
+    string_enum [
+      "OneCancelsTheOther", OCO ;
+      "OneTriggersTheOther", OTO ;
+      "OneUpdatesTheOtherAbsolute", OUOA ;
+      "OneUpdatesTheOtherProportional", OUOP ;
+    ]
+end
+
+module PegPriceType = struct
+  type t =
+    | LastPeg
+    | MidPricePeg
+    | MarketPeg
+    | PrimaryPeg
+    | TrailingStopPeg
+
+  let encoding =
+    let open Json_encoding in
+    string_enum [
+      "LastPeg", LastPeg ;
+      "MidPricePeg", MidPricePeg ;
+      "PrimaryPeg", PrimaryPeg ;
+      "TrailingStopPeg", TrailingStopPeg ;
+    ]
+end
+

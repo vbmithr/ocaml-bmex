@@ -169,27 +169,115 @@ end
 let position ?buf ?log ~testnet ~key ~secret () =
   call ?buf ?log ~testnet ~key ~secret ~verb:Get "/api/v1/position"
 
-let submit_order ?buf ?log ~testnet ~key ~secret orders =
-  let body = `Assoc ["orders", `List orders] in
-  call ?buf ?log ~testnet ~key ~secret ~body ~verb:Post "/api/v1/order/bulk"
+module Order = struct
+  type t = {
+    symbol : string ;
+    qty : int ;
+    displayQty : int option ;
+    price : float option ;
+    stopPx : float option ;
+    clOrdID : string option ;
+    contingencyType : (ContingencyType.t * string) option ;
+    pegOffsetValue : float option ;
+    pegPriceType : PegPriceType.t option ;
+    ordType : OrderType.t ;
+    timeInForce : TimeInForce.t ;
+    execInst : ExecInst.t list ;
+    text : string option ;
+  }
 
-let update_order ?buf ?log ~testnet ~key ~secret orders =
-  let body = `Assoc ["orders", `List orders] in
-  call ?buf ?log ~testnet ~key ~secret ~body ~verb:Put "/api/v1/order/bulk"
+  let create ?displayQty ?price ?stopPx ?clOrdID ?contingencyType
+      ?pegOffsetValue ?pegPriceType ?(execInst=[]) ?text ~symbol ~qty ~ordType ~timeInForce () =
+    { symbol ; qty ; displayQty ; price ; stopPx ; clOrdID ; contingencyType ;
+      pegOffsetValue ; pegPriceType ; ordType ; timeInForce ; execInst ; text }
 
-let cancel_order ?buf ?log ~testnet ~key ~secret orderID =
-  let body = `Assoc ["orderID", `String Uuid.(to_string orderID)] in
-  call ?buf ?log ~testnet ~key ~secret ~body ~verb:Delete "/api/v1/order"
+  let encoding =
+    let open Json_encoding in
+    conv
+      (fun { symbol ; qty ; displayQty ; price ; stopPx ; clOrdID ; contingencyType ;
+             pegOffsetValue ; pegPriceType ; ordType ; timeInForce ; execInst ; text } ->
+        let contingencyType, clOrdLinkID =
+          match contingencyType with
+          | None -> None, None
+          | Some (contingencyType, clOrdLinkID) ->
+            Some contingencyType, Some clOrdLinkID
+        in
+        let execInst =
+          match execInst with
+          | [] -> None
+          | _ -> Some (String.concat ~sep:"," (List.map execInst ~f:ExecInst.to_string)) in
+        (symbol, qty, displayQty, price, stopPx, clOrdID, clOrdLinkID,
+         pegOffsetValue, pegPriceType, ordType),
+        (timeInForce, execInst, contingencyType, text))
+      (fun ((symbol, qty, displayQty, price, stopPx, clOrdID, clOrdLinkID,
+             pegOffsetValue, pegPriceType, ordType),
+            (timeInForce, execInst, contingencyType, text)) ->
+        let contingencyType =
+          match clOrdLinkID, contingencyType with
+          | Some id, Some t -> Some (t, id)
+          | _ -> None
+        in
+        let execInst =
+          match execInst with
+          | None -> []
+          | Some execInst ->
+            List.map (String.split ~on:',' execInst) ~f:ExecInst.of_string in
+        { symbol ; qty ; displayQty ; price ; stopPx ; clOrdID ; contingencyType ;
+          pegOffsetValue ; pegPriceType ; ordType ; timeInForce ; execInst ; text })
+      (merge_objs
+         (obj10
+            (req "symbol" string)
+            (req "qty" int)
+            (opt "displayQty" int)
+            (opt "price" float)
+            (opt "stopPx" float)
+            (opt "clOrdID" string)
+            (opt "clOrdLinkID" string)
+            (opt "pegOffsetValue" float)
+            (opt "pegPriceType" PegPriceType.encoding)
+            (req "ordType" OrderType.encoding))
+         (obj4
+            (req "timeInForce" TimeInForce.encoding)
+            (opt "execInst" string)
+            (opt "contingencyType" ContingencyType.encoding)
+            (opt "text" string)))
 
-let cancel_all_orders ?buf ?log ?symbol ?filter ~testnet ~key ~secret () =
-  let body = List.filter_opt [
-      Option.map filter ~f:(fun json -> "filter", json);
-      Option.map symbol ~f:(fun sym -> "symbol", `String sym);
+  let submit_bulk ?buf ?log ~testnet ~key ~secret orders =
+    let orders = List.map orders ~f:(Yojson_encoding.construct encoding) in
+    let body = `Assoc ["orders", `List orders] in
+    call ?buf ?log ~testnet ~key ~secret ~body ~verb:Post "/api/v1/order/bulk"
+
+  let update_bulk ?buf ?log ~testnet ~key ~secret orders =
+    let body = `Assoc ["orders", `List orders] in
+    call ?buf ?log ~testnet ~key ~secret ~body ~verb:Put "/api/v1/order/bulk"
+
+  let cancel ?buf ?log ~testnet ~key ~secret orderID =
+    let body = `Assoc ["orderID", `String Uuid.(to_string orderID)] in
+    call ?buf ?log ~testnet ~key ~secret ~body ~verb:Delete "/api/v1/order"
+
+  let cancel_all ?buf ?log ?symbol ?filter ~testnet ~key ~secret () =
+    let body = List.filter_opt [
+        Option.map filter ~f:(fun json -> "filter", json);
+        Option.map symbol ~f:(fun sym -> "symbol", `String sym);
+      ] in
+    let body = `Assoc body in
+    call ?buf ?log ~testnet ~key ~secret ~body ~verb:Delete "/api/v1/order/all"
+
+  let cancel_all_after ?buf ?log ~testnet ~key ~secret timeout =
+    let timeout = Time_ns.Span.to_int_ms timeout in
+    let body = `Assoc ["timeout", `Int timeout] in
+    call ?buf ?log ~testnet ~key ~secret ~body ~verb:Post "/api/v1/order/cancelAllAfter"
+end
+
+let trade_history ?buf ?log ~testnet ~key ~secret
+    ?startTime ?endTime ?start ?count ?symbol ?filter ?reverse () =
+  let query = List.filter_opt [
+      Option.map startTime ~f:(fun ts -> "startTime", [Time_ns.to_string ts]) ;
+      Option.map endTime ~f:(fun ts -> "endTime", [Time_ns.to_string ts]) ;
+      Option.map start ~f:(fun start -> "endTime", [Int.to_string start]) ;
+      Option.map count ~f:(fun start -> "count", [Int.to_string start]) ;
+      Option.map symbol ~f:(fun symbol -> "symbol", [symbol]) ;
+      Option.map filter ~f:(fun filter -> "filter", [Yojson.Safe.to_string filter]) ;
+      Option.map reverse ~f:(fun rev -> "reverse", [Bool.to_string rev]) ;
     ] in
-  let body = `Assoc body in
-  call ?buf ?log ~testnet ~key ~secret ~body ~verb:Delete "/api/v1/order/all"
-
-let cancel_all_orders_after ?buf ?log ~testnet ~key ~secret timeout =
-  let timeout = Time_ns.Span.to_int_ms timeout in
-  let body = `Assoc ["timeout", `Int timeout] in
-  call ?buf ?log ~testnet ~key ~secret ~body ~verb:Post "/api/v1/order/cancelAllAfter"
+  call ?buf ?log ~testnet ~key ~secret ~verb:Get ~query "/api/v1/execution/tradeHistory"
