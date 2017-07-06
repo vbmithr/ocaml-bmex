@@ -10,13 +10,13 @@ type verb = Get | Post | Put | Delete
 val show_verb : verb -> string
 
 module Side : sig
-  type t = [`Buy | `Sell]
+  type t = [ `buy | `sell | `buy_sell_unset ]
 
-  val of_string : string -> t option
+  val of_string : string -> t
   val to_string : t -> string
   val show : t -> string
   val pp : Format.formatter -> t -> unit
-  val encoding : t option Json_encoding.encoding
+  val encoding : t Json_encoding.encoding
 end
 
 module OrderBook : sig
@@ -36,12 +36,14 @@ module OrderBook : sig
     type t = {
       symbol: string ;
       id: int ;
-      side: Side.t option ;
+      side: Side.t ;
       size: int option ;
       price: float option ;
     }
 
     val encoding : t Json_encoding.encoding
+    val of_yojson : Yojson.Safe.json -> t
+    val to_yojson : t -> Yojson.Safe.json
   end
 end
 
@@ -56,6 +58,8 @@ module Quote : sig
   }
 
   val encoding : t Json_encoding.encoding
+  val of_yojson : Yojson.Safe.json -> t
+  val to_yojson : t -> Yojson.Safe.json
   val merge : t -> t -> t
 end
 
@@ -63,12 +67,14 @@ module Trade : sig
   type t = {
     timestamp: Time_ns.t;
     symbol: string;
-    side: Side.t option ;
+    side: Side.t ;
     size: int;
     price: float;
   }
 
   val encoding : t Json_encoding.encoding
+  val of_yojson : Yojson.Safe.json -> t
+  val to_yojson : t -> Yojson.Safe.json
 end
 
 module Crypto : sig

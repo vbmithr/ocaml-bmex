@@ -1,5 +1,6 @@
 open Core
 open Async
+module Yojson_encoding = Json_encoding.Make(Json_repr.Yojson)
 
 let url = Uri.of_string "https://www.bitmex.com"
 let testnet_url = Uri.of_string "https://testnet.bitmex.com"
@@ -19,16 +20,17 @@ let string_of_verb = function
 let show_verb = string_of_verb
 
 module Side = struct
-  type t = [`Buy | `Sell]
+  type t = [ `buy | `sell | `buy_sell_unset ]
 
   let of_string = function
-    | "Buy" -> Some `Buy
-    | "Sell" -> Some `Sell
-    | _ -> None
+    | "Buy" -> `buy
+    | "Sell" -> `sell
+    | _ -> `buy_sell_unset
 
   let to_string = function
-    | `Buy -> "Buy"
-    | `Sell -> "Sell"
+    | `buy -> "Buy"
+    | `sell -> "Sell"
+    | `buy_sell_unset -> ""
 
   let show = to_string
 
@@ -38,9 +40,9 @@ module Side = struct
   let encoding =
     let open Json_encoding in
     string_enum [
-      "Buy", Some `Buy ;
-      "Sell", Some `Sell ;
-      "", None ;
+      "Buy", `buy ;
+      "Sell", `sell ;
+      "", `buy_sell_unset ;
     ]
 end
 
@@ -61,7 +63,7 @@ module OrderBook = struct
     type t = {
       symbol: string ;
       id: int ;
-      side: Side.t option ;
+      side: Side.t ;
       size: int option ;
       price: float option ;
     }
@@ -79,6 +81,9 @@ module OrderBook = struct
            (req "side" Side.encoding)
            (opt "size" int)
            (opt "price" float))
+
+    let of_yojson = Yojson_encoding.destruct encoding
+    let to_yojson = Yojson_encoding.construct encoding
   end
 end
 
@@ -107,6 +112,9 @@ module Quote = struct
          (req "askPrice" (option float))
          (req "askSize" (option int)))
 
+  let of_yojson = Yojson_encoding.destruct encoding
+  let to_yojson = Yojson_encoding.construct encoding
+
   let merge t t' =
     if t.symbol <> t'.symbol then invalid_arg "Quote.merge: symbols do not match";
     let merge_quote = Option.merge ~f:(fun _ q' -> q') in
@@ -124,7 +132,7 @@ module Trade = struct
   type t = {
     timestamp: Time_ns.t;
     symbol: string;
-    side: Side.t option ;
+    side: Side.t ;
     size: int;
     price: float;
   }
@@ -143,6 +151,9 @@ module Trade = struct
             (req "side" Side.encoding)
             (req "size" int)
             (req "price" float)))
+
+  let of_yojson = Yojson_encoding.destruct encoding
+  let to_yojson = Yojson_encoding.construct encoding
 end
 
 module Crypto = struct
