@@ -126,6 +126,8 @@ module Request = struct
       symbol : string option ;
     }
 
+    let create ?symbol topic = { symbol ; topic }
+
     let to_string { topic ; symbol } =
       match symbol with
       | None -> (Topic.to_string topic)
@@ -149,6 +151,11 @@ module Request = struct
         nonce : int ;
         signature : string
       }
+
+  let subscribe subs = Subscribe subs
+  let unsubscribe subs = Unsubscribe subs
+  let cancel_all_after timeout = CancelAllAfter timeout
+  let authkey ~key ~nonce ~signature = AuthKey { key ; nonce ; signature }
 
   let encoding =
     let open Json_encoding in
@@ -185,6 +192,9 @@ module Request = struct
           | _ -> None)
         (fun _ -> assert false)
     ]
+
+  let of_yojson = Yojson_encoding.destruct encoding
+  let to_yojson = Yojson_encoding.construct encoding
 end
 
 module Response = struct
@@ -272,20 +282,31 @@ module Response = struct
     conv (fun s -> (), s) (fun ((), s) -> s)
       (merge_objs unit (obj1 (req "error" string)))
 
-  let response_encoding =
-    let open Json_encoding in
-    conv
-      (fun sub -> (), (sub, true))
-      (fun ((), (sub, res)) -> sub)
-      (merge_objs unit
-         (obj2
-            (req "subscribe" Request.Sub.encoding)
-            (req "success" bool)))
+  module Response = struct
+    type t = {
+      success: bool option ;
+      request : Request.t ;
+      subscribe : Request.Sub.t option ;
+    }
+
+    let encoding =
+      let open Json_encoding in
+      conv
+        (fun { success ; request ; subscribe } ->
+           (), (success, request, subscribe))
+        (fun ((), (success, request, subscribe)) ->
+           { success ; request ; subscribe })
+        (merge_objs unit
+           (obj3
+              (opt "success" bool)
+              (req "request" Request.encoding)
+              (opt "subscribe" Request.Sub.encoding)))
+  end
 
   type t =
     | Welcome of Welcome.t
     | Error of string
-    | Response of Request.Sub.t
+    | Response of Response.t
     | Update of Update.t
 
   let encoding =
@@ -300,7 +321,7 @@ module Response = struct
         (function Welcome w -> Some w | _ -> None)
         (fun w -> Welcome w) ;
       case
-        response_encoding
+        Response.encoding
         (function Response r -> Some r | _ -> None)
         (fun r -> Response r) ;
       case
@@ -308,6 +329,9 @@ module Response = struct
         (function Update u -> Some u | _ -> None)
         (fun u -> Update u) ;
     ]
+
+  let of_yojson = Yojson_encoding.destruct encoding
+  let to_yojson = Yojson_encoding.construct encoding
 end
 
 module MD = struct
@@ -349,7 +373,6 @@ module MD = struct
       Request.AuthKey { key ; nonce ; signature } |>
       Yojson_encoding.construct Request.encoding in
     message ~id ~topic ~payload
-
 end
 
 let uri_of_opts testnet md =

@@ -50,7 +50,28 @@ module Request : sig
       topic : Topic.t ;
       symbol : string option ;
     }
+
+    val create : ?symbol:string -> Topic.t -> t
   end
+
+  type t =
+    | Subscribe of Sub.t list
+    | Unsubscribe of Sub.t list
+    | CancelAllAfter of int
+    | AuthKey of {
+        key : string ;
+        nonce : int ;
+        signature : string
+      }
+
+  val subscribe : Sub.t list -> t
+  val unsubscribe : Sub.t list -> t
+  val cancel_all_after : int -> t
+  val authkey : key:string -> nonce:int -> signature:string -> t
+
+  val encoding : t Json_encoding.encoding
+  val to_yojson : t -> Yojson.Safe.json
+  val of_yojson : Yojson.Safe.json -> t
 end
 
 module Response : sig
@@ -82,13 +103,43 @@ module Response : sig
     }
   end
 
+  module Response : sig
+    type t = {
+      success: bool option ;
+      request : Request.t ;
+      subscribe : Request.Sub.t option ;
+    }
+  end
+
   type t =
     | Welcome of Welcome.t
     | Error of string
-    | Response of Request.Sub.t
+    | Response of Response.t
     | Update of Update.t
 
   val encoding : t Json_encoding.encoding
+  val to_yojson : t -> Yojson.Safe.json
+  val of_yojson : Yojson.Safe.json -> t
+end
+
+module MD : sig
+  type stream = {
+    id : string ;
+    topic : string
+  }
+
+  type t =
+    | Message of { stream : stream ; payload : Yojson.Safe.json }
+    | Subscribe of stream
+    | Unsubscribe of stream
+
+  val of_yojson : Yojson.Safe.json -> t
+  val to_yojson : t -> Yojson.Safe.json
+
+  val subscribe : id:string -> topic:string -> t
+  val unsubscribe : id:string -> topic:string -> t
+  val message : id:string -> topic:string -> payload:Yojson.Safe.json -> t
+  val auth : id:string -> topic:string -> key:string -> secret:Cstruct.t -> t
 end
 
 val open_connection :
