@@ -247,18 +247,70 @@ module Order = struct
     let body = `Assoc ["orders", `List orders] in
     call ?buf ?log ~testnet ~key ~secret ~body ~verb:Post "/api/v1/order/bulk"
 
-  let update_bulk ?buf ?log ~testnet ~key ~secret orders =
+  type amend = {
+    orderID : string ;
+    origClOrdID : string option ;
+    clOrdID : string option ;
+    orderQty : int option ;
+    leavesQty : int option ;
+    price : float option ;
+    stopPx : float option ;
+    pegOffsetValue : float option ;
+    text : string option ;
+  }
+
+  let create_amend
+      ?origClOrdID ?clOrdID ?orderQty ?leavesQty
+      ?price ?stopPx ?pegOffsetValue ?text ~orderID () =
+    { orderID ; origClOrdID ; clOrdID ; orderQty ; leavesQty ; price ; stopPx ;
+      pegOffsetValue ; text }
+
+  let amend_encoding =
+    let open Json_encoding in
+    conv
+      (fun { orderID ; origClOrdID ; clOrdID ; orderQty ; leavesQty ; price ; stopPx ;
+             pegOffsetValue ; text } ->
+        (orderID, origClOrdID, clOrdID, orderQty, leavesQty, price, stopPx,
+         pegOffsetValue, text))
+      (fun (orderID, origClOrdID, clOrdID, orderQty, leavesQty, price, stopPx,
+            pegOffsetValue, text) ->
+        { orderID ; origClOrdID ; clOrdID ; orderQty ; leavesQty ; price ; stopPx ;
+          pegOffsetValue ; text })
+      (obj9
+         (req "orderID" string)
+         (opt "origClOrdID" string)
+         (opt "clOrdID" string)
+         (opt "orderQty" int)
+         (opt "leavesQty" int)
+         (opt "price" float)
+         (opt "stopPx" float)
+         (opt "pegOffsetValue" float)
+         (opt "text" string))
+
+  let amend_bulk ?buf ?log ~testnet ~key ~secret orders =
+    let orders = List.map orders ~f:(Yojson_encoding.construct amend_encoding) in
     let body = `Assoc ["orders", `List orders] in
     call ?buf ?log ~testnet ~key ~secret ~body ~verb:Put "/api/v1/order/bulk"
 
-  let cancel ?buf ?log ~testnet ~key ~secret orderID =
-    let body = `Assoc ["orderID", `String Uuid.(to_string orderID)] in
+  let cancel ?buf ?log ~testnet ~key ~secret ?(orderIDs=[]) ?(clOrdIDs=[]) ?text () =
+    let orderIDs = match orderIDs with
+      | [] -> None
+      | _ -> Some (String.concat ~sep:"," (List.map orderIDs ~f:Uuid.to_string)) in
+    let clOrdIDs = match clOrdIDs with
+      | [] -> None
+      | _ -> Some (String.concat ~sep:"," clOrdIDs) in
+    let body = `Assoc (List.filter_opt [
+        Option.map orderIDs ~f:(fun s -> "orderID", `String s) ;
+        Option.map clOrdIDs ~f:(fun s -> "clOrdID", `String s) ;
+        Option.map text ~f:(fun s -> "text", `String s) ;
+      ]) in
     call ?buf ?log ~testnet ~key ~secret ~body ~verb:Delete "/api/v1/order"
 
-  let cancel_all ?buf ?log ?symbol ?filter ~testnet ~key ~secret () =
+  let cancel_all ?buf ?log ~testnet ~key ~secret ?symbol ?filter ?text () =
     let body = List.filter_opt [
-        Option.map filter ~f:(fun json -> "filter", json);
         Option.map symbol ~f:(fun sym -> "symbol", `String sym);
+        Option.map filter ~f:(fun json -> "filter", json);
+        Option.map text ~f:(fun s -> "text", `String s);
       ] in
     let body = `Assoc body in
     call ?buf ?log ~testnet ~key ~secret ~body ~verb:Delete "/api/v1/order/all"

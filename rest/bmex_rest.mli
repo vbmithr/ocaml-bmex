@@ -46,20 +46,49 @@ module Order : sig
     testnet:bool -> key:string -> secret:Cstruct.t ->
     t list -> Yojson.Safe.json Deferred.Or_error.t
 
-  val update_bulk :
+  type amend = {
+    orderID : string ;
+    origClOrdID : string option ;
+    clOrdID : string option ;
+    orderQty : int option ;
+    leavesQty : int option ;
+    price : float option ;
+    stopPx : float option ;
+    pegOffsetValue : float option ;
+    text : string option ;
+  }
+
+  val create_amend :
+    ?origClOrdID:string ->
+    ?clOrdID:string ->
+    ?orderQty:int ->
+    ?leavesQty:int ->
+    ?price:float ->
+    ?stopPx:float ->
+    ?pegOffsetValue:float ->
+    ?text:string ->
+    orderID:string ->
+    unit -> amend
+
+  val amend_bulk :
     ?buf:Bi_outbuf.t -> ?log:Log.t ->
     testnet:bool -> key:string -> secret:Cstruct.t ->
-    Yojson.Safe.json list -> Yojson.Safe.json Deferred.Or_error.t
+    amend list -> Yojson.Safe.json Deferred.Or_error.t
 
   val cancel :
     ?buf:Bi_outbuf.t -> ?log:Log.t ->
     testnet:bool -> key:string -> secret:Cstruct.t ->
-    Uuid.t -> Yojson.Safe.json Deferred.Or_error.t
+    ?orderIDs:Uuid.t list ->
+    ?clOrdIDs:string list ->
+    ?text:string -> unit ->
+    Yojson.Safe.json Deferred.Or_error.t
 
   val cancel_all :
     ?buf:Bi_outbuf.t -> ?log:Log.t ->
-    ?symbol:string -> ?filter:Yojson.Safe.json ->
     testnet:bool -> key:string -> secret:Cstruct.t ->
+    ?symbol:string ->
+    ?filter:Yojson.Safe.json ->
+    ?text:string ->
     unit -> Yojson.Safe.json Deferred.Or_error.t
 
   val cancel_all_after :
