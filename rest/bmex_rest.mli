@@ -3,10 +3,31 @@ open Async
 
 open Bmex
 
-val position :
-  ?buf:Bi_outbuf.t -> ?log:Log.t ->
-  testnet:bool -> key:string -> secret:Cstruct.t ->
-  unit -> Yojson.Safe.json Deferred.Or_error.t
+module Execution : sig
+  val trade_history :
+    ?buf:Bi_outbuf.t ->
+    ?log:Async.Log.t ->
+    testnet:bool ->
+    key:string ->
+    secret:Cstruct.t ->
+    ?startTime:Core.Time_ns.t ->
+    ?endTime:Core.Time_ns.t ->
+    ?start:Core.Int.t ->
+    ?count:Core.Int.t ->
+    ?symbol:string ->
+    ?filter:Yojson.Safe.json ->
+    ?reverse:Core.Bool.t ->
+    unit -> Yojson.Safe.json Deferred.Or_error.t
+end
+
+module Instrument : sig
+  val active_and_indices :
+    ?buf:Bi_outbuf.t ->
+    ?log:Log.t ->
+    testnet:bool ->
+    unit ->
+    Yojson.Safe.json list Deferred.Or_error.t
+end
 
 module Order : sig
   type t = {
@@ -97,17 +118,31 @@ module Order : sig
     Time_ns.Span.t -> Yojson.Safe.json Deferred.Or_error.t
 end
 
-val trade_history :
-  ?buf:Bi_outbuf.t ->
-  ?log:Async.Log.t ->
-  testnet:bool ->
-  key:string ->
-  secret:Cstruct.t ->
-  ?startTime:Core.Time_ns.t ->
-  ?endTime:Core.Time_ns.t ->
-  ?start:Core.Int.t ->
-  ?count:Core.Int.t ->
-  ?symbol:string ->
-  ?filter:Yojson.Safe.json ->
-  ?reverse:Core.Bool.t ->
-  unit -> Yojson.Safe.json Deferred.Or_error.t
+module Position : sig
+  val get :
+    ?buf:Bi_outbuf.t -> ?log:Log.t ->
+    testnet:bool ->
+    key:string ->
+    secret:Cstruct.t ->
+    ?filter:Yojson.Safe.json ->
+    ?columns:string list ->
+    ?count:Core.Int.t ->
+    unit -> Yojson.Safe.json Deferred.Or_error.t
+end
+
+module Trade : sig
+  val get :
+    ?buf:Bi_outbuf.t ->
+    ?log:Async.Log.t ->
+    testnet:bool ->
+    ?filter:Yojson.Safe.json ->
+    ?columns:string list ->
+    ?count:int ->
+    ?start:int ->
+    ?reverse:bool ->
+    ?startTime:Time_ns.t ->
+    ?endTime:Time_ns.t ->
+    ?symbol:string ->
+    unit -> Trade.t list Deferred.Or_error.t
+end
+
