@@ -185,12 +185,22 @@ module Request = struct
       case
         (obj2
            (req "op" string)
-           (req "args" (list string)))
+           (req "args" any_value))
         (function
           | AuthKey { key ; nonce ; signature } ->
-            Some ("authKey", [key ; Int.to_string nonce ; signature])
+            let payload =
+              Json_repr.(repr_to_any (module Yojson)
+                           (`List [`String key ; `Int nonce ; `String signature])) in
+            Some ("authKey", payload)
           | _ -> None)
-        (fun _ -> assert false)
+        (function
+          | ("authKey", payload) -> begin
+              match Json_repr.(any_to_repr (module Yojson) payload) with
+              | `List [`String key ; `Int nonce ; `String signature] ->
+                AuthKey { key ; nonce ; signature }
+              | _ -> invalid_arg "Request.encoding"
+            end
+          | _ -> invalid_arg "Request.encoding")
     ]
 
   let of_yojson = Yojson_encoding.destruct encoding
@@ -255,8 +265,6 @@ module Response = struct
 
   module Welcome = struct
     type t = {
-      heartbeat : bool ;
-      timeout : int ;
       version : string ;
       timestamp : Time_ns.t ;
     }
@@ -264,15 +272,13 @@ module Response = struct
     let encoding =
       let open Json_encoding in
       conv
-        (fun { heartbeat ; timeout ; version ; timestamp } ->
-           (), (heartbeat, timeout, version, Time_ns.to_string timestamp))
-        (fun ((), (heartbeat, timeout, version, timestamp)) ->
+        (fun { version ; timestamp } ->
+           (), (version, Time_ns.to_string timestamp))
+        (fun ((), (version, timestamp)) ->
            let timestamp = Time_ns.of_string timestamp in
-           { heartbeat ; timeout ; version ; timestamp })
+           { version ; timestamp })
         (merge_objs unit
-           (obj4
-              (req "heartbeatEnabled" bool)
-              (req "heartbeatTimeout" int)
+           (obj2
               (req "version" string)
               (req "timestamp" string)))
   end
@@ -330,7 +336,13 @@ module Response = struct
         (fun u -> Update u) ;
     ]
 
-  let of_yojson = Yojson_encoding.destruct encoding
+  let of_yojson json =
+    try Yojson_encoding.destruct encoding json with
+    | exn ->
+      Caml.Format.eprintf "%s" Yojson.Safe.(to_string json) ;
+      Caml.Format.eprintf "%a@." (fun ppf -> Json_encoding.print_error ppf) exn ;
+      raise exn
+
   let to_yojson = Yojson_encoding.construct encoding
 end
 
@@ -393,7 +405,6 @@ let open_connection
     | None -> []
     | Some (key, secret) -> Crypto.mk_query_params ?log ~key ~secret ~api:Ws ~verb:Get uri
   in
-  let uri = Uri.add_query_param uri ("heartbeat", ["true"]) in
   let uri = Uri.add_query_params uri @@
     if md then [] else
       ["subscribe", topics] @ auth_params @ query_params

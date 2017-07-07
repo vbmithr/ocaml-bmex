@@ -77,8 +77,6 @@ end
 module Response : sig
   module Welcome : sig
     type t = {
-      heartbeat : bool ;
-      timeout : int ;
       version : string ;
       timestamp : Time_ns.t ;
     }
