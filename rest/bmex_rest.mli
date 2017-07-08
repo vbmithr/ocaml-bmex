@@ -17,7 +17,8 @@ module Execution : sig
     ?symbol:string ->
     ?filter:Yojson.Safe.json ->
     ?reverse:Core.Bool.t ->
-    unit -> Yojson.Safe.json Deferred.Or_error.t
+    unit ->
+    (Cohttp.Response.t * Yojson.Safe.json) Deferred.Or_error.t
 end
 
 module Instrument : sig
@@ -26,7 +27,7 @@ module Instrument : sig
     ?log:Log.t ->
     testnet:bool ->
     unit ->
-    Yojson.Safe.json list Deferred.Or_error.t
+    (Cohttp.Response.t * Yojson.Safe.json list) Deferred.Or_error.t
 end
 
 module Order : sig
@@ -65,7 +66,8 @@ module Order : sig
   val submit_bulk :
     ?buf:Bi_outbuf.t -> ?log:Log.t ->
     testnet:bool -> key:string -> secret:Cstruct.t ->
-    t list -> Yojson.Safe.json Deferred.Or_error.t
+    t list ->
+    (Cohttp.Response.t * Yojson.Safe.json) Deferred.Or_error.t
 
   type amend = {
     orderID : string ;
@@ -94,7 +96,8 @@ module Order : sig
   val amend_bulk :
     ?buf:Bi_outbuf.t -> ?log:Log.t ->
     testnet:bool -> key:string -> secret:Cstruct.t ->
-    amend list -> Yojson.Safe.json Deferred.Or_error.t
+    amend list ->
+    (Cohttp.Response.t * Yojson.Safe.json) Deferred.Or_error.t
 
   val cancel :
     ?buf:Bi_outbuf.t -> ?log:Log.t ->
@@ -102,7 +105,7 @@ module Order : sig
     ?orderIDs:Uuid.t list ->
     ?clOrdIDs:string list ->
     ?text:string -> unit ->
-    Yojson.Safe.json Deferred.Or_error.t
+    (Cohttp.Response.t * Yojson.Safe.json) Deferred.Or_error.t
 
   val cancel_all :
     ?buf:Bi_outbuf.t -> ?log:Log.t ->
@@ -110,12 +113,14 @@ module Order : sig
     ?symbol:string ->
     ?filter:Yojson.Safe.json ->
     ?text:string ->
-    unit -> Yojson.Safe.json Deferred.Or_error.t
+    unit ->
+    (Cohttp.Response.t * Yojson.Safe.json) Deferred.Or_error.t
 
   val cancel_all_after :
     ?buf:Bi_outbuf.t -> ?log:Log.t ->
     testnet:bool -> key:string -> secret:Cstruct.t ->
-    Time_ns.Span.t -> Yojson.Safe.json Deferred.Or_error.t
+    Time_ns.Span.t ->
+    (Cohttp.Response.t * Yojson.Safe.json) Deferred.Or_error.t
 end
 
 module Position : sig
@@ -127,7 +132,8 @@ module Position : sig
     ?filter:Yojson.Safe.json ->
     ?columns:string list ->
     ?count:Core.Int.t ->
-    unit -> Yojson.Safe.json Deferred.Or_error.t
+    unit ->
+    (Cohttp.Response.t * Yojson.Safe.json) Deferred.Or_error.t
 end
 
 module Trade : sig
@@ -143,6 +149,7 @@ module Trade : sig
     ?startTime:Time_ns.t ->
     ?endTime:Time_ns.t ->
     ?symbol:string ->
-    unit -> Trade.t list Deferred.Or_error.t
+    unit ->
+    (Cohttp.Response.t * Trade.t list) Deferred.Or_error.t
 end
 

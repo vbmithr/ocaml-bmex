@@ -78,7 +78,7 @@ let call
     let status = Response.status resp in
     let status_code = C.Code.code_of_status status in
     if C.Code.is_success status_code then
-      return @@ Yojson.Safe.from_string ?buf body_str
+      return (resp, Yojson.Safe.from_string ?buf body_str)
     else if C.Code.is_client_error status_code then begin
       let json = Yojson.Safe.(from_string ?buf body_str) in
       let { Error.name ; message } =
@@ -165,7 +165,7 @@ module ApiKey = struct
                match username with None -> "all" | Some u -> "get" in
     let query = match username with None -> [] | Some u -> ["get", [u]] in
     call ?buf ?log ~credentials ~testnet ~query ~verb:Get path >>|
-    Or_error.map ~f:(Yojson_encoding.destruct encoding)
+    Or_error.map ~f:(fun (resp, json) -> resp, Yojson_encoding.destruct encoding json)
 end
 
 module Execution = struct
@@ -187,8 +187,8 @@ end
 module Instrument = struct
   let active_and_indices ?buf ?log ~testnet () =
     call ?buf ?log ~testnet ~verb:Get "/api/v1/instrument/activeAndIndices" >>|
-    Or_error.map ~f:begin function
-      | `List instrs -> instrs
+    Or_error.map ~f:begin fun (resp, instrs) -> match instrs with
+      | `List instrs -> resp, instrs
       | #Yojson.Safe.json -> invalid_arg "Instrument.active_and_indices"
     end
 end
@@ -376,5 +376,7 @@ module Trade = struct
         Option.map endTime ~f:(fun ts -> "endTime", [Time_ns.to_string ts]) ;
       ] in
     call ?buf ?log ~testnet ~verb:Get ~query "/api/v1/trade" >>|
-    Or_error.map ~f:Json_encoding.(Yojson_encoding.destruct (list Trade.encoding))
+    Or_error.map ~f:begin fun (resp, json) ->
+      resp, Json_encoding.(Yojson_encoding.destruct (list Trade.encoding) json)
+    end
 end
