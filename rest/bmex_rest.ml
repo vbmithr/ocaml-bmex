@@ -196,7 +196,7 @@ end
 module Order = struct
   type t = {
     symbol : string ;
-    qty : int ;
+    orderQty : int ;
     displayQty : int option ;
     price : float option ;
     stopPx : float option ;
@@ -211,14 +211,16 @@ module Order = struct
   }
 
   let create ?displayQty ?price ?stopPx ?clOrdID ?contingencyType
-      ?pegOffsetValue ?pegPriceType ?(execInst=[]) ?text ~symbol ~qty ~ordType ~timeInForce () =
-    { symbol ; qty ; displayQty ; price ; stopPx ; clOrdID ; contingencyType ;
+      ?pegOffsetValue ?pegPriceType
+      ?(timeInForce=`tif_unset) ?(execInst=[])
+      ?text ~symbol ~orderQty ~ordType () =
+    { symbol ; orderQty ; displayQty ; price ; stopPx ; clOrdID ; contingencyType ;
       pegOffsetValue ; pegPriceType ; ordType ; timeInForce ; execInst ; text }
 
   let encoding =
     let open Json_encoding in
     conv
-      (fun { symbol ; qty ; displayQty ; price ; stopPx ; clOrdID ; contingencyType ;
+      (fun { symbol ; orderQty ; displayQty ; price ; stopPx ; clOrdID ; contingencyType ;
              pegOffsetValue ; pegPriceType ; ordType ; timeInForce ; execInst ; text } ->
         let contingencyType, clOrdLinkID =
           match contingencyType with
@@ -230,10 +232,10 @@ module Order = struct
           match execInst with
           | [] -> None
           | _ -> Some (String.concat ~sep:"," (List.map execInst ~f:ExecInst.to_string)) in
-        (symbol, qty, displayQty, price, stopPx, clOrdID, clOrdLinkID,
+        (symbol, orderQty, displayQty, price, stopPx, clOrdID, clOrdLinkID,
          pegOffsetValue, pegPriceType, ordType),
         (timeInForce, execInst, contingencyType, text))
-      (fun ((symbol, qty, displayQty, price, stopPx, clOrdID, clOrdLinkID,
+      (fun ((symbol, orderQty, displayQty, price, stopPx, clOrdID, clOrdLinkID,
              pegOffsetValue, pegPriceType, ordType),
             (timeInForce, execInst, contingencyType, text)) ->
         let contingencyType =
@@ -246,7 +248,7 @@ module Order = struct
           | None -> []
           | Some execInst ->
             List.map (String.split ~on:',' execInst) ~f:ExecInst.of_string in
-        { symbol ; qty ; displayQty ; price ; stopPx ; clOrdID ; contingencyType ;
+        { symbol ; orderQty ; displayQty ; price ; stopPx ; clOrdID ; contingencyType ;
           pegOffsetValue ; pegPriceType ; ordType ; timeInForce ; execInst ; text })
       (merge_objs
          (obj10
@@ -261,7 +263,7 @@ module Order = struct
             (opt "pegPriceType" PegPriceType.encoding)
             (req "ordType" OrderType.encoding))
          (obj4
-            (req "timeInForce" TimeInForce.encoding)
+            (dft "timeInForce" TimeInForce.encoding `tif_unset)
             (opt "execInst" string)
             (opt "contingencyType" ContingencyType.encoding)
             (opt "text" string)))
@@ -273,7 +275,7 @@ module Order = struct
     call ?buf ?log ~testnet ~credentials ~body ~verb:Post "/api/v1/order/bulk"
 
   type amend = {
-    orderID : string ;
+    orderID : string option ;
     origClOrdID : string option ;
     clOrdID : string option ;
     orderQty : int option ;
@@ -286,7 +288,7 @@ module Order = struct
 
   let create_amend
       ?origClOrdID ?clOrdID ?orderQty ?leavesQty
-      ?price ?stopPx ?pegOffsetValue ?text ~orderID () =
+      ?price ?stopPx ?pegOffsetValue ?text ?orderID () =
     { orderID ; origClOrdID ; clOrdID ; orderQty ; leavesQty ; price ; stopPx ;
       pegOffsetValue ; text }
 
@@ -302,7 +304,7 @@ module Order = struct
         { orderID ; origClOrdID ; clOrdID ; orderQty ; leavesQty ; price ; stopPx ;
           pegOffsetValue ; text })
       (obj9
-         (req "orderID" string)
+         (opt "orderID" string)
          (opt "origClOrdID" string)
          (opt "clOrdID" string)
          (opt "orderQty" int)
@@ -341,13 +343,15 @@ module Order = struct
         Option.map text ~f:(fun s -> "text", `String s);
       ] in
     let body = `Assoc body in
-    call ?buf ?log ~testnet ~credentials ~body ~verb:Delete "/api/v1/order/all"
+    call ?buf ?log ~testnet ~credentials ~body ~verb:Delete "/api/v1/order/all" >>|
+    Or_error.map ~f:fst
 
   let cancel_all_after ?buf ?log ~testnet ~key ~secret timeout =
     let credentials = key, secret in
     let timeout = Time_ns.Span.to_int_ms timeout in
     let body = `Assoc ["timeout", `Int timeout] in
-    call ?buf ?log ~testnet ~credentials ~body ~verb:Post "/api/v1/order/cancelAllAfter"
+    call ?buf ?log ~testnet ~credentials ~body ~verb:Post "/api/v1/order/cancelAllAfter" >>|
+    Or_error.map ~f:fst
 end
 
 module Position = struct

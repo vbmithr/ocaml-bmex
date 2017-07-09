@@ -33,7 +33,7 @@ end
 module Order : sig
   type t = {
     symbol : string ;
-    qty : int ;
+    orderQty : int ;
     displayQty : int option ;
     price : float option ;
     stopPx : float option ;
@@ -55,12 +55,12 @@ module Order : sig
     ?contingencyType:(ContingencyType.t * string) ->
     ?pegOffsetValue:float ->
     ?pegPriceType:PegPriceType.t ->
+    ?timeInForce:TimeInForce.t ->
     ?execInst:ExecInst.t list ->
     ?text:string ->
     symbol:string ->
-    qty:int ->
+    orderQty:int ->
     ordType:OrderType.t ->
-    timeInForce:TimeInForce.t ->
     unit -> t
 
   val submit_bulk :
@@ -70,7 +70,7 @@ module Order : sig
     (Cohttp.Response.t * Yojson.Safe.json) Deferred.Or_error.t
 
   type amend = {
-    orderID : string ;
+    orderID : string option ;
     origClOrdID : string option ;
     clOrdID : string option ;
     orderQty : int option ;
@@ -90,7 +90,7 @@ module Order : sig
     ?stopPx:float ->
     ?pegOffsetValue:float ->
     ?text:string ->
-    orderID:string ->
+    ?orderID:string ->
     unit -> amend
 
   val amend_bulk :
@@ -114,13 +114,13 @@ module Order : sig
     ?filter:Yojson.Safe.json ->
     ?text:string ->
     unit ->
-    (Cohttp.Response.t * Yojson.Safe.json) Deferred.Or_error.t
+    Cohttp.Response.t Deferred.Or_error.t
 
   val cancel_all_after :
     ?buf:Bi_outbuf.t -> ?log:Log.t ->
     testnet:bool -> key:string -> secret:Cstruct.t ->
     Time_ns.Span.t ->
-    (Cohttp.Response.t * Yojson.Safe.json) Deferred.Or_error.t
+    Cohttp.Response.t Deferred.Or_error.t
 end
 
 module Position : sig
