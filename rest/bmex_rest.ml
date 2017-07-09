@@ -251,7 +251,7 @@ module Order = struct
       (merge_objs
          (obj10
             (req "symbol" string)
-            (req "qty" int)
+            (req "orderQty" int)
             (opt "displayQty" int)
             (opt "price" float)
             (opt "stopPx" float)
