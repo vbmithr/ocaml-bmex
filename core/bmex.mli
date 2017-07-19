@@ -174,3 +174,41 @@ module PegPriceType : sig
 
   val encoding : t Json_encoding.encoding
 end
+
+module OrdStatus : sig
+  type t =
+    | New
+    | PartiallyFilled
+    | Filled
+    | DoneForDay
+    | Canceled
+    | PendingCancel
+    | Stopped
+    | Rejected
+    | Suspended
+    | PendingNew
+    | Calculated
+    | Expired
+    | AcceptedForBidding
+    | PendingReplace
+  [@@deriving sexp]
+
+  val show : t -> string
+  val of_string : string -> t
+end
+
+module ExecType : sig
+  type t =
+    | New
+    | Trade
+    | Canceled
+    | Replaced
+    | Restated
+    | TriggeredOrActivatedBySystem
+    | Funding
+    | Settlement
+  [@@deriving sexp]
+
+  val show : t -> string
+  val of_string : string -> t
+end

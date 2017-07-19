@@ -355,3 +355,66 @@ module PegPriceType = struct
     ]
 end
 
+module OrdStatus = struct
+  type t =
+    | New
+    | PartiallyFilled
+    | Filled
+    | DoneForDay
+    | Canceled
+    | PendingCancel
+    | Stopped
+    | Rejected
+    | Suspended
+    | PendingNew
+    | Calculated
+    | Expired
+    | AcceptedForBidding
+    | PendingReplace
+  [@@deriving sexp]
+
+  let show t = Sexplib.Sexp.to_string (sexp_of_t t)
+
+  let of_string = function
+    | "New" -> New
+    | "PartiallyFilled" -> PartiallyFilled
+    | "Filled" -> Filled
+    | "DoneForDay" -> DoneForDay
+    | "Canceled" -> Canceled
+    | "PendingCancel" -> PendingCancel
+    | "Stopped" -> Stopped
+    | "Rejected" -> Rejected
+    | "Suspended" -> Suspended
+    | "PendingNew" -> PendingNew
+    | "Calculated" -> Calculated
+    | "Expired" -> Expired
+    | "AcceptedForBidding" -> AcceptedForBidding
+    | "PendingReplace" -> PendingReplace
+    | _ -> invalid_arg "OrdStatus.of_string"
+end
+
+module ExecType = struct
+  type t =
+    | New
+    | Trade
+    | Canceled
+    | Replaced
+    | Restated
+    | TriggeredOrActivatedBySystem
+    | Funding
+    | Settlement
+  [@@deriving sexp]
+
+  let show t = Sexplib.Sexp.to_string (sexp_of_t t)
+
+  let of_string = function
+    | "New" -> New
+    | "Trade" -> Trade
+    | "Canceled" -> Canceled
+    | "Replaced" -> Replaced
+    | "Restated" -> Restated
+    | "TriggeredOrActivatedBySystem" -> TriggeredOrActivatedBySystem
+    | "Funding" -> Funding
+    | "Settlement" -> Settlement
+    | _ -> invalid_arg "ExecInst.of_string"
+end
