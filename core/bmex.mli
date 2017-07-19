@@ -83,7 +83,7 @@ module Crypto : sig
   val sign :
     ?log:Log.t ->
     ?data:string ->
-    secret:Cstruct.t ->
+    secret:string ->
     verb:verb ->
     endp:string ->
     api -> int * string
@@ -92,7 +92,7 @@ module Crypto : sig
     ?log:Log.t ->
     ?data:string ->
     key:string ->
-    secret:Cstruct.t ->
+    secret:string ->
     api:api ->
     verb:verb ->
     Uri.t -> (string * string list) list

@@ -11,6 +11,5 @@
               ocplib-json-typed
               bs-devkit
               cohttp-async
-              nocrypto
               hex
               websocket-async))))

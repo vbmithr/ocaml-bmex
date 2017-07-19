@@ -137,7 +137,7 @@ module MD : sig
   val subscribe : id:string -> topic:string -> t
   val unsubscribe : id:string -> topic:string -> t
   val message : id:string -> topic:string -> payload:Yojson.Safe.json -> t
-  val auth : id:string -> topic:string -> key:string -> secret:Cstruct.t -> t
+  val auth : id:string -> topic:string -> key:string -> secret:string -> t
 end
 
 val open_connection :
@@ -146,7 +146,7 @@ val open_connection :
   ?to_ws:Yojson.Safe.json Pipe.Reader.t ->
   ?query_params:(string * string list) list ->
   ?log:Log.t ->
-  ?auth:string * Cstruct.t ->
+  ?auth:string * string ->
   testnet:bool ->
   md:bool ->
   topics:string list ->

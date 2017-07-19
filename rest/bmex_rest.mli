@@ -9,7 +9,7 @@ module Execution : sig
     ?log:Async.Log.t ->
     testnet:bool ->
     key:string ->
-    secret:Cstruct.t ->
+    secret:string ->
     ?startTime:Core.Time_ns.t ->
     ?endTime:Core.Time_ns.t ->
     ?start:Core.Int.t ->
@@ -65,7 +65,9 @@ module Order : sig
 
   val submit_bulk :
     ?buf:Bi_outbuf.t -> ?log:Log.t ->
-    testnet:bool -> key:string -> secret:Cstruct.t ->
+    testnet:bool ->
+    key:string ->
+    secret:string ->
     t list ->
     (Cohttp.Response.t * Yojson.Safe.json) Deferred.Or_error.t
 
@@ -95,13 +97,13 @@ module Order : sig
 
   val amend_bulk :
     ?buf:Bi_outbuf.t -> ?log:Log.t ->
-    testnet:bool -> key:string -> secret:Cstruct.t ->
+    testnet:bool -> key:string -> secret:string ->
     amend list ->
     (Cohttp.Response.t * Yojson.Safe.json) Deferred.Or_error.t
 
   val cancel :
     ?buf:Bi_outbuf.t -> ?log:Log.t ->
-    testnet:bool -> key:string -> secret:Cstruct.t ->
+    testnet:bool -> key:string -> secret:string ->
     ?orderIDs:Uuid.t list ->
     ?clOrdIDs:string list ->
     ?text:string -> unit ->
@@ -109,7 +111,7 @@ module Order : sig
 
   val cancel_all :
     ?buf:Bi_outbuf.t -> ?log:Log.t ->
-    testnet:bool -> key:string -> secret:Cstruct.t ->
+    testnet:bool -> key:string -> secret:string ->
     ?symbol:string ->
     ?filter:Yojson.Safe.json ->
     ?text:string ->
@@ -118,7 +120,7 @@ module Order : sig
 
   val cancel_all_after :
     ?buf:Bi_outbuf.t -> ?log:Log.t ->
-    testnet:bool -> key:string -> secret:Cstruct.t ->
+    testnet:bool -> key:string -> secret:string ->
     Time_ns.Span.t ->
     Cohttp.Response.t Deferred.Or_error.t
 end
@@ -128,7 +130,7 @@ module Position : sig
     ?buf:Bi_outbuf.t -> ?log:Log.t ->
     testnet:bool ->
     key:string ->
-    secret:Cstruct.t ->
+    secret:string ->
     ?filter:Yojson.Safe.json ->
     ?columns:string list ->
     ?count:Core.Int.t ->

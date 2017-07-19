@@ -168,9 +168,9 @@ module Crypto = struct
     let nonce = gen_nonce kind in
     let nonce_str = Int.to_string nonce in
     Option.iter log ~f:(fun log -> Log.debug log "sign %s" nonce_str);
-    let prehash = Cstruct.of_string (verb_str ^ endp ^ nonce_str ^ data) in
+    let prehash = verb_str ^ endp ^ nonce_str ^ data in
     let `Hex sign =
-      Hex.of_cstruct Nocrypto.Hash.SHA256.(hmac ~key:secret prehash) in
+      Hex.of_string Digestif.SHA256.Bytes.(hmac ~key:secret prehash) in
     nonce, sign
 
   let mk_query_params ?log ?(data="") ~key ~secret ~api ~verb uri =
