@@ -155,3 +155,33 @@ module Trade : sig
     (Cohttp.Response.t * Trade.t list) Deferred.Or_error.t
 end
 
+module ApiKey : sig
+  module Permission : sig
+    type t =
+      | Perm of string
+      | Dtc of string
+  end
+
+  type t = {
+    id: string;
+    secret: string;
+    name: string;
+    nonce: int;
+    cidr: string;
+    permissions: Permission.t list;
+    enabled: bool;
+    userId: int;
+    created: Time_ns.t;
+  }
+
+  val dtc :
+    ?buf:Bi_outbuf.t ->
+    ?log:Log.t ->
+    ?username:string ->
+    testnet:bool ->
+    key:string ->
+    secret:string ->
+    unit ->
+    (Cohttp.Response.t * t list) Deferred.Or_error.t
+end
+

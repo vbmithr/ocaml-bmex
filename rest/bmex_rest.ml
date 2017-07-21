@@ -165,7 +165,9 @@ module ApiKey = struct
                match username with None -> "all" | Some u -> "get" in
     let query = match username with None -> [] | Some u -> ["get", [u]] in
     call ?buf ?log ~credentials ~testnet ~query ~verb:Get path >>|
-    Or_error.map ~f:(fun (resp, json) -> resp, Yojson_encoding.destruct encoding json)
+    Or_error.map ~f:begin fun (resp, json) ->
+      resp, Yojson_encoding.destruct (Json_encoding.list encoding) json
+    end
 end
 
 module Execution = struct
