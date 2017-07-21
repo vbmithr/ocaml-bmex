@@ -400,6 +400,7 @@ module ExecType = struct
     | Canceled
     | Replaced
     | Restated
+    | Rejected
     | TriggeredOrActivatedBySystem
     | Funding
     | Settlement

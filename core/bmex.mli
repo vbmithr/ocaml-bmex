@@ -204,6 +204,7 @@ module ExecType : sig
     | Canceled
     | Replaced
     | Restated
+    | Rejected
     | TriggeredOrActivatedBySystem
     | Funding
     | Settlement
