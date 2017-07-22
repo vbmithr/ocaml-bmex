@@ -183,7 +183,11 @@ module Execution = struct
         Option.map filter ~f:(fun filter -> "filter", [Yojson.Safe.to_string filter]) ;
         Option.map reverse ~f:(fun rev -> "reverse", [Bool.to_string rev]) ;
       ] in
-    call ?buf ?log ~testnet ~credentials ~verb:Get ~query "/api/v1/execution/tradeHistory"
+    call ?buf ?log ~testnet ~credentials ~verb:Get ~query "/api/v1/execution/tradeHistory" >>|
+    Or_error.map ~f:begin fun (resp, trades) -> match trades with
+      | `List trades -> resp, trades
+      | #Yojson.Safe.json -> invalid_arg "Execution.trade_history"
+    end
 end
 
 module Instrument = struct
@@ -364,7 +368,11 @@ module Position = struct
         Option.map columns ~f:(fun cs -> "columns", cs) ;
         Option.map count ~f:(fun start -> "count", [Int.to_string start]) ;
       ] in
-    call ?buf ?log ~testnet ~credentials ~verb:Get ~query "/api/v1/position"
+    call ?buf ?log ~testnet ~credentials ~verb:Get ~query "/api/v1/position" >>|
+    Or_error.map ~f:begin fun (resp, positions) -> match positions with
+      | `List positions -> resp, positions
+      | #Yojson.Safe.json -> invalid_arg "Position.get"
+    end
 end
 
 module Trade = struct

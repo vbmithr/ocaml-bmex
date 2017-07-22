@@ -18,7 +18,7 @@ module Execution : sig
     ?filter:Yojson.Safe.json ->
     ?reverse:Core.Bool.t ->
     unit ->
-    (Cohttp.Response.t * Yojson.Safe.json) Deferred.Or_error.t
+    (Cohttp.Response.t * Yojson.Safe.json list) Deferred.Or_error.t
 end
 
 module Instrument : sig
@@ -135,7 +135,7 @@ module Position : sig
     ?columns:string list ->
     ?count:Core.Int.t ->
     unit ->
-    (Cohttp.Response.t * Yojson.Safe.json) Deferred.Or_error.t
+    (Cohttp.Response.t * Yojson.Safe.json list) Deferred.Or_error.t
 end
 
 module Trade : sig
