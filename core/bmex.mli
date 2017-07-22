@@ -4,7 +4,10 @@ open Async
 val url : Uri.t
 val testnet_url : Uri.t
 
-val time_encoding : Time_ns.t Json_encoding.encoding
+module Encoding : sig
+  val time : Time_ns.t Json_encoding.encoding
+  val uuid : Uuid.t Json_encoding.encoding
+end
 
 type verb = Get | Post | Put | Delete
 val show_verb : verb -> string

@@ -157,7 +157,7 @@ module ApiKey = struct
          (req "permissions" (list Permission.encoding))
          (req "enabled" bool)
          (req "userId" int)
-         (req "created" time_encoding))
+         (req "created" Encoding.time))
 
   let dtc ?buf ?log ?username ~testnet ~key ~secret () =
     let credentials = key, secret in
@@ -281,7 +281,7 @@ module Order = struct
     call ?buf ?log ~testnet ~credentials ~body ~verb:Post "/api/v1/order/bulk"
 
   type amend = {
-    orderID : string option ;
+    orderID : Uuid.t option ;
     origClOrdID : string option ;
     clOrdID : string option ;
     orderQty : int option ;
@@ -310,7 +310,7 @@ module Order = struct
         { orderID ; origClOrdID ; clOrdID ; orderQty ; leavesQty ; price ; stopPx ;
           pegOffsetValue ; text })
       (obj9
-         (opt "orderID" string)
+         (opt "orderID" Encoding.uuid)
          (opt "origClOrdID" string)
          (opt "clOrdID" string)
          (opt "orderQty" int)

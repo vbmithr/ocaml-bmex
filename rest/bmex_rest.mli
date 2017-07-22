@@ -72,7 +72,7 @@ module Order : sig
     (Cohttp.Response.t * Yojson.Safe.json) Deferred.Or_error.t
 
   type amend = {
-    orderID : string option ;
+    orderID : Uuid.t option ;
     origClOrdID : string option ;
     clOrdID : string option ;
     orderQty : int option ;
@@ -92,7 +92,7 @@ module Order : sig
     ?stopPx:float ->
     ?pegOffsetValue:float ->
     ?text:string ->
-    ?orderID:string ->
+    ?orderID:Uuid.t ->
     unit -> amend
 
   val amend_bulk :

@@ -5,11 +5,16 @@ module Yojson_encoding = Json_encoding.Make(Json_repr.Yojson)
 let url = Uri.of_string "https://www.bitmex.com"
 let testnet_url = Uri.of_string "https://testnet.bitmex.com"
 
-let time_encoding =
-  Json_encoding.(Time_ns.(conv to_string of_string string))
+module Encoding = struct
+  let time =
+    Json_encoding.(Time_ns.(conv to_string of_string string))
 
-let uint_encoding =
-  Json_encoding.ranged_int ~minimum:0 ~maximum:Int.max_value "uint"
+  let uint =
+    Json_encoding.ranged_int ~minimum:0 ~maximum:Int.max_value "uint"
+
+  let uuid =
+    Json_encoding.(conv Uuid.to_string Uuid.of_string string)
+end
 
 type verb = Get | Post | Put | Delete
 let string_of_verb = function
@@ -77,7 +82,7 @@ module OrderBook = struct
            { symbol ; id ; side ; size ; price })
         (obj5
            (req "symbol" string)
-           (req "id" uint_encoding)
+           (req "id" Encoding.uint)
            (req "side" Side.encoding)
            (opt "size" int)
            (opt "price" float))
@@ -105,7 +110,7 @@ module Quote = struct
       (fun (timestamp, symbol, bidPrice, bidSize, askPrice, askSize) ->
       { timestamp ; symbol ; bidPrice ; bidSize ; askPrice ; askSize })
       (obj6
-         (req "timestamp" time_encoding)
+         (req "timestamp" Encoding.time)
          (req "symbol" string)
          (req "bidPrice" (option float))
          (req "bidSize" (option int))
@@ -146,7 +151,7 @@ module Trade = struct
          { timestamp ; symbol ; side ; size ; price })
       (merge_objs unit
          (obj5
-            (req "timestamp" time_encoding)
+            (req "timestamp" Encoding.time)
             (req "symbol" string)
             (req "side" Side.encoding)
             (req "size" int)
