@@ -188,6 +188,17 @@ module Execution = struct
       | `List trades -> resp, trades
       | #Yojson.Safe.json -> invalid_arg "Execution.trade_history"
     end
+
+  let all_trade_history ?buf ?log ~testnet ~key ~secret ?symbol ?filter () =
+    let rec inner acc start =
+      trade_history ?buf ?log ~testnet ~key ~secret ~start ~count:500 ?symbol ?filter () >>= function
+      | Ok (resp, trades) ->
+        let acc = acc @ trades in
+        if List.length trades = 500 then
+          inner acc (start + 500)
+        else Deferred.Or_error.return (resp, acc)
+      | Error err -> Deferred.Or_error.fail err
+    in inner [] 0
 end
 
 module Instrument = struct

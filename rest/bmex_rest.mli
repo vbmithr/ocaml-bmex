@@ -19,6 +19,17 @@ module Execution : sig
     ?reverse:Core.Bool.t ->
     unit ->
     (Cohttp.Response.t * Yojson.Safe.json list) Deferred.Or_error.t
+
+  val all_trade_history :
+    ?buf:Bi_outbuf.t ->
+    ?log:Async.Log.t ->
+    testnet:bool ->
+    key:string ->
+    secret:string ->
+    ?symbol:string ->
+    ?filter:Yojson.Safe.json ->
+    unit ->
+    (Cohttp.Response.t * Yojson.Safe.json list) Deferred.Or_error.t
 end
 
 module Instrument : sig
