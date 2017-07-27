@@ -147,7 +147,7 @@ module ApiKey = struct
          (req "id" string)
          (req "secret" string)
          (req "name" string)
-         (req "nonce" int)
+         (req "nonce" Encoding.uint)
          (req "cidr" string)
          (req "permissions" (list Permission.encoding))
          (req "enabled" bool)

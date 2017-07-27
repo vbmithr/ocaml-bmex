@@ -14,6 +14,7 @@ module Encoding : sig
   val yojson_to_any : Yojson.Safe.json -> Json_repr.any
 
   val time : Time_ns.t Json_encoding.encoding
+  val uint : int Json_encoding.encoding
   val uuid : Uuid.t Json_encoding.encoding
 end
 
