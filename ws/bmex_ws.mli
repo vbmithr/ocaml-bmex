@@ -71,7 +71,7 @@ module Request : sig
 
   val encoding : t Json_encoding.encoding
   val to_yojson : t -> Yojson.Safe.json
-  val of_yojson : Yojson.Safe.json -> t
+  val of_yojson : log:Log.t -> Yojson.Safe.json -> t
 end
 
 module Response : sig
@@ -117,7 +117,7 @@ module Response : sig
 
   val encoding : t Json_encoding.encoding
   val to_yojson : t -> Yojson.Safe.json
-  val of_yojson : Yojson.Safe.json -> t
+  val of_yojson : log:Log.t -> Yojson.Safe.json -> t
 end
 
 module MD : sig
@@ -131,7 +131,7 @@ module MD : sig
     | Subscribe of stream
     | Unsubscribe of stream
 
-  val of_yojson : Yojson.Safe.json -> t
+  val of_yojson : log:Log.t -> Yojson.Safe.json -> t
   val to_yojson : t -> Yojson.Safe.json
 
   val subscribe : id:string -> topic:string -> t

@@ -3,10 +3,6 @@ open Async
 
 open Bmex
 
-module Yojson_encoding = Json_encoding.Make(Json_repr.Yojson)
-let any_to_yojson = Json_repr.(any_to_repr (module Yojson))
-let yojson_to_any = Json_repr.(repr_to_any (module Yojson))
-
 module Topic = struct
   type t =
     (* private *)
@@ -203,8 +199,8 @@ module Request = struct
           | _ -> invalid_arg "Request.encoding")
     ]
 
-  let of_yojson = Yojson_encoding.destruct encoding
-  let to_yojson = Yojson_encoding.construct encoding
+  let of_yojson ~log = Encoding.destruct_safe ~log encoding
+  let to_yojson = Encoding.construct encoding
 end
 
 module Response = struct
@@ -251,10 +247,10 @@ module Response = struct
       let open Json_encoding in
       conv
         (fun { table ; action ; data } ->
-           let data = List.map data ~f:yojson_to_any in
+           let data = List.map data ~f:Encoding.yojson_to_any in
            (), (table, action, data))
         (fun ((), (table, action, data)) ->
-           let data = List.map data ~f:any_to_yojson in
+           let data = List.map data ~f:Encoding.any_to_yojson in
            { table ; action ; data })
         (merge_objs unit
            (obj3
@@ -336,14 +332,8 @@ module Response = struct
         (fun u -> Update u) ;
     ]
 
-  let of_yojson json =
-    try Yojson_encoding.destruct encoding json with
-    | exn ->
-      Caml.Format.eprintf "%s" Yojson.Safe.(to_string json) ;
-      Caml.Format.eprintf "%a@." (fun ppf -> Json_encoding.print_error ppf) exn ;
-      raise exn
-
-  let to_yojson = Yojson_encoding.construct encoding
+  let of_yojson ~log = Encoding.destruct_safe ~log encoding
+  let to_yojson = Encoding.construct encoding
 end
 
 module MD = struct
@@ -357,7 +347,7 @@ module MD = struct
     | Subscribe of stream
     | Unsubscribe of stream
 
-  let of_yojson = function
+  let of_yojson ~log = function
     | `List (`Int typ :: `String id :: `String topic :: payload) -> begin
         match typ, payload with
         | 0, [payload] -> Message { stream = { id ; topic } ; payload }
@@ -365,7 +355,9 @@ module MD = struct
         | 2, [] -> Subscribe { id ; topic }
         | _ -> invalid_arg "MD.of_yojson"
       end
-    | #Yojson.Safe.json -> invalid_arg "MD.of_yojson"
+    | #Yojson.Safe.json as json ->
+      Log.error log "%s" (Yojson.Safe.to_string json) ;
+      invalid_arg "MD.of_yojson"
 
   let to_yojson = function
     | Message { stream = { id ; topic } ; payload } ->
@@ -383,7 +375,7 @@ module MD = struct
     let nonce, signature = Crypto.sign ~secret ~verb:Get ~endp:"/realtime" Ws in
     let payload =
       Request.AuthKey { key ; nonce ; signature } |>
-      Yojson_encoding.construct Request.encoding in
+      Encoding.construct Request.encoding in
     message ~id ~topic ~payload
 end
 

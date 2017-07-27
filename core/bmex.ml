@@ -1,11 +1,25 @@
 open Core
 open Async
-module Yojson_encoding = Json_encoding.Make(Json_repr.Yojson)
 
 let url = Uri.of_string "https://www.bitmex.com"
 let testnet_url = Uri.of_string "https://testnet.bitmex.com"
 
 module Encoding = struct
+  include Json_encoding.Make(Json_repr.Yojson)
+
+  let destruct_safe encoding ?log value =
+    try destruct encoding value with exn ->
+      let value_str = Yojson.Safe.to_string value in
+      Option.iter log ~f:begin fun log ->
+        let error_s = Format.asprintf "%a"
+            (Json_encoding.print_error ?print_unknown:None) exn in
+        Log.error log "%s\n%s\n" value_str error_s
+      end ;
+      raise exn
+
+  let any_to_yojson = Json_repr.(any_to_repr (module Yojson))
+  let yojson_to_any = Json_repr.(repr_to_any (module Yojson))
+
   let time =
     Json_encoding.(Time_ns.(conv to_string of_string string))
 
@@ -87,8 +101,8 @@ module OrderBook = struct
            (opt "size" int)
            (opt "price" float))
 
-    let of_yojson = Yojson_encoding.destruct encoding
-    let to_yojson = Yojson_encoding.construct encoding
+    let of_yojson = Encoding.destruct_safe encoding
+    let to_yojson = Encoding.construct encoding
   end
 end
 
@@ -117,8 +131,8 @@ module Quote = struct
          (req "askPrice" (option float))
          (req "askSize" (option int)))
 
-  let of_yojson = Yojson_encoding.destruct encoding
-  let to_yojson = Yojson_encoding.construct encoding
+  let of_yojson = Encoding.destruct_safe encoding
+  let to_yojson = Encoding.construct encoding
 
   let merge t t' =
     if t.symbol <> t'.symbol then invalid_arg "Quote.merge: symbols do not match";
@@ -157,8 +171,8 @@ module Trade = struct
             (req "size" int)
             (req "price" float)))
 
-  let of_yojson = Yojson_encoding.destruct encoding
-  let to_yojson = Yojson_encoding.construct encoding
+  let of_yojson = Encoding.destruct_safe encoding
+  let to_yojson = Encoding.construct encoding
 end
 
 module Crypto = struct

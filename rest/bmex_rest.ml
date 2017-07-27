@@ -1,14 +1,9 @@
 open Core
 open Async
-
-open Bmex
-
-module Yojson_encoding = Json_encoding.Make(Json_repr.Yojson)
-let any_to_yojson = Json_repr.(any_to_repr (module Yojson))
-let yojson_to_any = Json_repr.(repr_to_any (module Yojson))
-
 module C = Cohttp
 open Cohttp_async
+
+open Bmex
 
 module Error = struct
   type t = {
@@ -82,7 +77,7 @@ let call
     else if C.Code.is_client_error status_code then begin
       let json = Yojson.Safe.(from_string ?buf body_str) in
       let { Error.name ; message } =
-        Yojson_encoding.destruct Error.wrapped_encoding json in
+        Encoding.destruct_safe ?log Error.wrapped_encoding json in
       failwithf "%s: %s" name message ()
     end
     else if C.Code.is_server_error status_code then begin
@@ -105,11 +100,11 @@ module ApiKey = struct
       | Dtc of string
 
     let dtc_to_any username =
-      yojson_to_any
+      Encoding.yojson_to_any
         (`List [`String "sierra-dtc"; `Assoc ["username", `String username]])
 
     let dtc_of_any any =
-      match any_to_yojson any with
+      match Encoding.any_to_yojson any with
       | `List [`String "sierra-dtc"; `Assoc ["username", `String username]] -> Dtc username
       | #Yojson.Safe.json -> invalid_arg "ApiKey.dtc_of_any"
 
@@ -166,7 +161,7 @@ module ApiKey = struct
     let query = match username with None -> [] | Some u -> ["get", [u]] in
     call ?buf ?log ~credentials ~testnet ~query ~verb:Get path >>|
     Or_error.map ~f:begin fun (resp, json) ->
-      resp, Yojson_encoding.destruct (Json_encoding.list encoding) json
+      resp, Encoding.destruct_safe ?log (Json_encoding.list encoding) json
     end
 end
 
@@ -287,7 +282,7 @@ module Order = struct
 
   let submit_bulk ?buf ?log ~testnet ~key ~secret orders =
     let credentials = key, secret in
-    let orders = List.map orders ~f:(Yojson_encoding.construct encoding) in
+    let orders = List.map orders ~f:(Encoding.construct encoding) in
     let body = `Assoc ["orders", `List orders] in
     call ?buf ?log ~testnet ~credentials ~body ~verb:Post "/api/v1/order/bulk"
 
@@ -333,7 +328,7 @@ module Order = struct
 
   let amend_bulk ?buf ?log ~testnet ~key ~secret orders =
     let credentials = key, secret in
-    let orders = List.map orders ~f:(Yojson_encoding.construct amend_encoding) in
+    let orders = List.map orders ~f:(Encoding.construct amend_encoding) in
     let body = `Assoc ["orders", `List orders] in
     call ?buf ?log ~testnet ~credentials ~body ~verb:Put "/api/v1/order/bulk"
 
@@ -402,6 +397,6 @@ module Trade = struct
       ] in
     call ?buf ?log ~testnet ~verb:Get ~query "/api/v1/trade" >>|
     Or_error.map ~f:begin fun (resp, json) ->
-      resp, Json_encoding.(Yojson_encoding.destruct (list Trade.encoding) json)
+      resp, Json_encoding.(Encoding.destruct (list Trade.encoding) json)
     end
 end
