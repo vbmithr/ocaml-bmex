@@ -111,6 +111,43 @@ module Topic = struct
     | TradeBin1h -> "tradeBin1h"
     | TradeBin1d -> "tradeBin1d"
 
+  let encoding =
+    let open Json_encoding in
+    string_enum [
+      "privateNotifications", PrivateNotifications ;
+      "account", Account ;
+      "wallet", Wallet ;
+      "affiliate", Affiliate ;
+      "margin", Margin ;
+      "position", Position ;
+      "transact", Transact ;
+      "order", Order ;
+      "execution", Execution ;
+      "announcement", Announcement ;
+      "connected", Connected ;
+      "chat", Chat ;
+      "publicNotifications", PublicNotifications ;
+      "instrument", Instrument ;
+      "settlement", Settlement ;
+      "funding", Funding ;
+      "insurance", Insurance ;
+      "liquidation", Liquidation ;
+      "orderBookL2", OrderBookL2 ;
+      "orderBook", OrderBook ;
+      "orderBook25", OrderBook25 ;
+      "orderBook10", OrderBook10 ;
+      "quote", Quote ;
+      "trade", Trade ;
+      "quoteBin1m", QuoteBin1m ;
+      "quoteBin5m", QuoteBin5m ;
+      "quoteBin1h", QuoteBin1h ;
+      "quoteBin1d", QuoteBin1d ;
+      "tradeBin1m", TradeBin1m ;
+      "tradeBin5m", TradeBin5m ;
+      "tradeBin1h", TradeBin1h ;
+      "tradeBin1d", TradeBin1d ;
+    ]
+
   let show = to_string
   let pp ppf t = Format.fprintf ppf "%s" (to_string t)
 end
@@ -238,7 +275,7 @@ module Response = struct
       ]
 
     type t = {
-      table : string ;
+      table : Topic.t ;
       action : action ;
       data : Yojson.Safe.json list ;
     }
@@ -254,7 +291,7 @@ module Response = struct
            { table ; action ; data })
         (merge_objs unit
            (obj3
-              (req "table" string)
+              (req "table" Topic.encoding)
               (req "action" action_encoding)
               (req "data" (list any_value))))
   end

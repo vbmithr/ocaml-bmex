@@ -95,7 +95,7 @@ module Response : sig
     val pp_action : Format.formatter -> action -> unit
 
     type t = {
-      table : string ;
+      table : Topic.t ;
       action : action ;
       data : Yojson.Safe.json list ;
     }
