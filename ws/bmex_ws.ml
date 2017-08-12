@@ -404,7 +404,7 @@ module MD = struct
     | Unsubscribe { id ; topic } ->
       `List [`Int 2 ; `String id ; `String topic]
 
-  let subscribe ~id ~topic = Subscribe {id ; topic }
+  let subscribe ~id ~topic = Subscribe { id ; topic }
   let unsubscribe ~id ~topic = Unsubscribe { id ; topic }
   let message ~id ~topic ~payload = Message { stream = { id ; topic } ; payload }
 
