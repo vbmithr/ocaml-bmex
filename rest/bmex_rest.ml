@@ -280,6 +280,24 @@ module Order = struct
             (opt "contingencyType" ContingencyType.encoding)
             (opt "text" string)))
 
+  let get_open_orders ?buf ?log ~testnet ~key ~secret
+      ?startTime ?endTime ?start ?count ?symbol ?filter ?reverse () =
+    let credentials = key, secret in
+    let query = List.filter_opt [
+        Option.map startTime ~f:(fun ts -> "startTime", [Time_ns.to_string ts]) ;
+        Option.map endTime ~f:(fun ts -> "endTime", [Time_ns.to_string ts]) ;
+        Option.map start ~f:(fun start -> "start", [Int.to_string start]) ;
+        Option.map count ~f:(fun start -> "count", [Int.to_string start]) ;
+        Option.map symbol ~f:(fun symbol -> "symbol", [symbol]) ;
+        Option.map filter ~f:(fun filter -> "filter", [Yojson.Safe.to_string filter]) ;
+        Option.map reverse ~f:(fun rev -> "reverse", [Bool.to_string rev]) ;
+      ] in
+    call ?buf ?log ~testnet ~credentials ~verb:Get ~query "/api/v1/order" >>|
+    Or_error.map ~f:begin fun (resp, trades) -> match trades with
+      | `List trades -> resp, trades
+      | #Yojson.Safe.json -> invalid_arg "Order.get_open_orders"
+    end
+
   let submit_bulk ?buf ?log ~testnet ~key ~secret orders =
     let credentials = key, secret in
     let orders = List.map orders ~f:(Encoding.construct encoding) in

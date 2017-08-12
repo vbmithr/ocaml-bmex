@@ -74,6 +74,21 @@ module Order : sig
     ordType:OrderType.t ->
     unit -> t
 
+  val get_open_orders :
+    ?buf:Bi_outbuf.t -> ?log:Log.t ->
+    testnet:bool ->
+    key:string ->
+    secret:string ->
+    ?startTime:Core.Time_ns.t ->
+    ?endTime:Core.Time_ns.t ->
+    ?start:Core.Int.t ->
+    ?count:Core.Int.t ->
+    ?symbol:string ->
+    ?filter:Yojson.Safe.json ->
+    ?reverse:Core.Bool.t ->
+    unit ->
+    (Cohttp.Response.t * Yojson.Safe.json list) Deferred.Or_error.t
+
   val submit_bulk :
     ?buf:Bi_outbuf.t -> ?log:Log.t ->
     testnet:bool ->
