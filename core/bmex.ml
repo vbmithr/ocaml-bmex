@@ -208,6 +208,7 @@ module OrderType = struct
     | `order_type_limit
     | `order_type_stop
     | `order_type_stop_limit
+    | `order_type_limit_if_touched
     | `order_type_market_if_touched
   ]
 
@@ -216,6 +217,7 @@ module OrderType = struct
     | `order_type_limit -> "Limit"
     | `order_type_stop -> "Stop"
     | `order_type_stop_limit -> "StopLimit"
+    | `order_type_limit_if_touched -> "LimitIfTouched"
     | `order_type_market_if_touched -> "MarketIfTouched"
     | `order_type_unset -> ""
 
@@ -224,6 +226,7 @@ module OrderType = struct
     | "Limit" -> `order_type_limit
     | "Stop" -> `order_type_stop
     | "StopLimit" -> `order_type_stop_limit
+    | "LimitIfTouched" -> `order_type_limit_if_touched
     | "MarketIfTouched" -> `order_type_market_if_touched
     | s -> invalid_argf "ord_type_of_string: %s" s ()
 
@@ -234,6 +237,7 @@ module OrderType = struct
       "Limit", `order_type_limit ;
       "Stop", `order_type_stop ;
       "StopLimit", `order_type_stop_limit ;
+      "LimitIfTouched", `order_type_limit_if_touched ;
       "MarketIfTouched", `order_type_market_if_touched ;
     ]
 
@@ -243,6 +247,7 @@ module OrderType = struct
     | `order_type_limit -> Some price, None
     | `order_type_stop -> Some stopPx, None
     | `order_type_stop_limit -> Some stopPx, Some price
+    | `order_type_limit_if_touched -> Some stopPx, Some price
     | `order_type_market_if_touched -> Some stopPx, None
 
   let to_price_stopPx ?p1 ?p2 ordType =
@@ -253,6 +258,7 @@ module OrderType = struct
     | `order_type_stop, Some p, _
     | `order_type_market_if_touched, Some p, _ -> None, Some p
     | `order_type_stop_limit, Some stopPx, Some limitPx -> Some limitPx, Some stopPx
+    | `order_type_limit_if_touched, Some stopPx, Some limitPx -> Some limitPx, Some stopPx
     | _ -> invalid_arg "price_fields_of_dtc"
 end
 
