@@ -117,6 +117,7 @@ module OrderType : sig
     | `order_type_limit
     | `order_type_stop
     | `order_type_stop_limit
+    | `order_type_limit_if_touched
     | `order_type_market_if_touched
   ]
 
