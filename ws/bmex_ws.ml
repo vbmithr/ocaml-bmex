@@ -196,6 +196,15 @@ module Request = struct
       case
         (obj2
            (req "op" string)
+           (req "args" Sub.encoding))
+        (fun _ -> None)
+        (function
+          | ("subscribe", arg) -> Subscribe [arg]
+          | ("unsubscribe", arg) -> Unsubscribe [arg]
+          | _ -> invalid_arg "Request.encoding") ;
+      case
+        (obj2
+           (req "op" string)
            (req "args" (list Sub.encoding)))
         (function
           | Subscribe args -> Some ("subscribe", args)
