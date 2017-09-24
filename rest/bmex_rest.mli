@@ -200,6 +200,8 @@ module ApiKey : sig
     created: Time_ns.t;
   }
 
+  module Set : Set.S with type Elt.t = t
+
   val dtc :
     ?buf:Bi_outbuf.t ->
     ?log:Log.t ->

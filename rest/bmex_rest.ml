@@ -98,6 +98,7 @@ module ApiKey = struct
     type t =
       | Perm of string
       | Dtc of string
+    [@@deriving sexp]
 
     let dtc_to_any username =
       Encoding.yojson_to_any
@@ -120,17 +121,25 @@ module ApiKey = struct
       ]
   end
 
-  type t = {
-    id: string;
-    secret: string;
-    name: string;
-    nonce: int;
-    cidr: string;
-    permissions: Permission.t list;
-    enabled: bool;
-    userId: int;
-    created: Time_ns.t;
-  }
+  module T = struct
+    type t = {
+      id: string;
+      secret: string;
+      name: string;
+      nonce: int;
+      cidr: string;
+      permissions: Permission.t list;
+      enabled: bool;
+      userId: int;
+      created: Time_ns.t;
+    } [@@deriving sexp]
+
+    let compare { id } { id = id2 } =
+      String.compare id id2
+  end
+
+  include T
+  module Set = Set.Make(T)
 
   let encoding =
     let open Json_encoding in
