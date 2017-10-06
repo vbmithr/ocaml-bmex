@@ -309,6 +309,7 @@ module ExecInst = struct
     | Close
     | ReduceOnly
     | Fixed
+    | Unknown of string
 
   let to_string = function
     | ParticipateDoNotInitiate -> "ParticipateDoNotInitiate"
@@ -319,6 +320,7 @@ module ExecInst = struct
     | Close -> "Close"
     | ReduceOnly -> "ReduceOnly"
     | Fixed -> "Fixed"
+    | Unknown s -> s
 
   let of_string = function
     | "ParticipateDoNotInitiate" -> ParticipateDoNotInitiate
@@ -329,7 +331,7 @@ module ExecInst = struct
     | "Close" -> Close
     | "ReduceOnly" -> ReduceOnly
     | "Fixed" -> Fixed
-    | _ -> invalid_arg "ExecInst.of_string"
+    | s -> Unknown s
 
   let encoding =
     let open Json_encoding in
@@ -396,6 +398,7 @@ module OrdStatus = struct
     | Expired
     | AcceptedForBidding
     | PendingReplace
+    | Unknown of string
   [@@deriving sexp]
 
   let show t = Sexplib.Sexp.to_string (sexp_of_t t)
@@ -415,7 +418,7 @@ module OrdStatus = struct
     | "Expired" -> Expired
     | "AcceptedForBidding" -> AcceptedForBidding
     | "PendingReplace" -> PendingReplace
-    | _ -> invalid_arg "OrdStatus.of_string"
+    | s -> Unknown s
 end
 
 module ExecType = struct
@@ -429,6 +432,11 @@ module ExecType = struct
     | TriggeredOrActivatedBySystem
     | Funding
     | Settlement
+    | Suspended
+    | Released
+    | Insurance
+    | Rebalance
+    | Unknown of string
   [@@deriving sexp]
 
   let show t = Sexplib.Sexp.to_string (sexp_of_t t)
@@ -442,5 +450,9 @@ module ExecType = struct
     | "TriggeredOrActivatedBySystem" -> TriggeredOrActivatedBySystem
     | "Funding" -> Funding
     | "Settlement" -> Settlement
-    | _ -> invalid_arg "ExecInst.of_string"
+    | "Suspended" -> Suspended
+    | "Released" -> Released
+    | "Insurance" -> Insurance
+    | "Rebalance" -> Rebalance
+    | s -> Unknown s
 end

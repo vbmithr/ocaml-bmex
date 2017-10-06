@@ -161,6 +161,7 @@ module ExecInst : sig
     | Close
     | ReduceOnly
     | Fixed
+    | Unknown of string
 
   val to_string : t -> string
   val of_string : string -> t
@@ -204,6 +205,7 @@ module OrdStatus : sig
     | Expired
     | AcceptedForBidding
     | PendingReplace
+    | Unknown of string
   [@@deriving sexp]
 
   val show : t -> string
@@ -221,6 +223,11 @@ module ExecType : sig
     | TriggeredOrActivatedBySystem
     | Funding
     | Settlement
+    | Suspended
+    | Released
+    | Insurance
+    | Rebalance
+    | Unknown of string
   [@@deriving sexp]
 
   val show : t -> string
