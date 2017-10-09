@@ -398,7 +398,7 @@ module MD = struct
         match typ, payload with
         | 0, [payload] -> Message { stream = { id ; topic } ; payload }
         | 1, [] -> Subscribe { id ; topic }
-        | 2, [] -> Subscribe { id ; topic }
+        | 2, [] -> Unsubscribe { id ; topic }
         | _ -> invalid_arg "MD.of_yojson"
       end
     | #Yojson.Safe.json as json ->
