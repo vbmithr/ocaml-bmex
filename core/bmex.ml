@@ -179,7 +179,7 @@ module Crypto = struct
   type api = Rest | Ws
 
   let gen_nonce = function
-  | Rest -> Time_ns.(now () |> to_int_ns_since_epoch) / 1_000_000_000 + 5
+  | Rest -> Time_ns.(now () |> to_int_ns_since_epoch) / 1_000_000_000 + 30
   | Ws -> Time_ns.(now () |> to_int_ns_since_epoch) / 1_000
 
   let sign ?log ?(data="") ~secret ~verb ~endp kind =
