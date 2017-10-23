@@ -65,47 +65,6 @@ module Side = struct
     ]
 end
 
-module OrderBook = struct
-  module Deprecated = struct
-    type t = {
-      symbol: string ;
-      level: int ;
-      bidSize: int option ;
-      bidPrice: float option ;
-      askSize: int option ;
-      askPrice: float option ;
-      timestamp: Time_ns.t ;
-    }
-  end
-
-  module L2 = struct
-    type t = {
-      symbol: string ;
-      id: int ;
-      side: Side.t ;
-      size: int option ;
-      price: float option ;
-    }
-
-    let encoding =
-      let open Json_encoding in
-      conv
-        (fun { symbol ; id ; side ; size ; price } ->
-           (symbol, id, side, size, price))
-        (fun (symbol, id, side, size, price) ->
-           { symbol ; id ; side ; size ; price })
-        (obj5
-           (req "symbol" string)
-           (req "id" Encoding.uint)
-           (req "side" Side.encoding)
-           (opt "size" int)
-           (opt "price" float))
-
-    let of_yojson = Encoding.destruct_safe encoding
-    let to_yojson = Encoding.construct encoding
-  end
-end
-
 module Quote = struct
   type t = {
     timestamp: Time_ns.t ;

@@ -31,34 +31,6 @@ module Side : sig
   val encoding : t Json_encoding.encoding
 end
 
-module OrderBook : sig
-  module Deprecated : sig
-    type t = {
-      symbol: string ;
-      level: int ;
-      bidSize: int option ;
-      bidPrice: float option ;
-      askSize: int option ;
-      askPrice: float option ;
-      timestamp: Time_ns.t ;
-    }
-  end
-
-  module L2 : sig
-    type t = {
-      symbol: string ;
-      id: int ;
-      side: Side.t ;
-      size: int option ;
-      price: float option ;
-    }
-
-    val encoding : t Json_encoding.encoding
-    val of_yojson : ?log:Log.t -> Yojson.Safe.json -> t
-    val to_yojson : t -> Yojson.Safe.json
-  end
-end
-
 module Quote : sig
   type t = {
     timestamp: Time_ns.t ;
