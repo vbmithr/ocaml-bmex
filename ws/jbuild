@@ -1,15 +1,5 @@
 (library
  ((name        bmex_ws)
   (public_name bmex-ws)
-  (modules (bmex_ws))
   (preprocess (pps (ppx_sexp_conv)))
-  (libraries (bmex
-              core
-              async
-              yojson
-              jsonm
-              ocplib-json-typed
-              bs-devkit
-              cohttp-async
-              hex
-              websocket-async))))
+  (libraries (bmex websocket-async))))
