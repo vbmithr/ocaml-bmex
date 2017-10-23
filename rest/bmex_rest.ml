@@ -164,19 +164,19 @@ module ApiKey = struct
          (req "userId" int)
          (req "created" Encoding.time))
 
-  let dtc ?buf ?log ?username ~testnet ~key ~secret () =
+  let dtc ?extract_exn ?buf ?log ?username ~testnet ~key ~secret () =
     let credentials = key, secret in
     let path = "/api/v1/apiKey/dtc/" ^
                match username with None -> "all" | Some u -> "get" in
     let query = match username with None -> [] | Some u -> ["get", [u]] in
-    call ?buf ?log ~credentials ~testnet ~query ~verb:Get path >>|
+    call ?extract_exn ?buf ?log ~credentials ~testnet ~query ~verb:Get path >>|
     Or_error.map ~f:begin fun (resp, json) ->
       resp, Encoding.destruct_safe ?log (Json_encoding.list encoding) json
     end
 end
 
 module Execution = struct
-  let trade_history ?buf ?log ~testnet ~key ~secret
+  let trade_history ?extract_exn ?buf ?log ~testnet ~key ~secret
       ?startTime ?endTime ?start ?count ?symbol ?filter ?reverse () =
     let credentials = key, secret in
     let query = List.filter_opt [
@@ -188,14 +188,14 @@ module Execution = struct
         Option.map filter ~f:(fun filter -> "filter", [Yojson.Safe.to_string filter]) ;
         Option.map reverse ~f:(fun rev -> "reverse", [Bool.to_string rev]) ;
       ] in
-    call ?buf ?log ~testnet ~credentials ~verb:Get ~query "/api/v1/execution/tradeHistory" >>|
+    call ?extract_exn ?buf ?log ~testnet ~credentials ~verb:Get ~query "/api/v1/execution/tradeHistory" >>|
     Or_error.map ~f:begin fun (resp, trades) ->
       resp, List.map (Yojson.Safe.Util.to_list trades) ~f:Execution.of_yojson
     end
 
-  let all_trade_history ?buf ?log ~testnet ~key ~secret ?symbol ?filter () =
+  let all_trade_history ?extract_exn ?buf ?log ~testnet ~key ~secret ?symbol ?filter () =
     let rec inner acc start =
-      trade_history ?buf ?log ~testnet ~key ~secret ~start ~count:500 ?symbol ?filter () >>= function
+      trade_history ?extract_exn ?buf ?log ~testnet ~key ~secret ~start ~count:500 ?symbol ?filter () >>= function
       | Ok (resp, trades) ->
         let acc = acc @ trades in
         if List.length trades = 500 then
@@ -206,8 +206,8 @@ module Execution = struct
 end
 
 module Instrument = struct
-  let active_and_indices ?buf ?log ~testnet () =
-    call ?buf ?log ~testnet ~verb:Get "/api/v1/instrument/activeAndIndices" >>|
+  let active_and_indices ?extract_exn ?buf ?log ~testnet () =
+    call ?extract_exn ?buf ?log ~testnet ~verb:Get "/api/v1/instrument/activeAndIndices" >>|
     Or_error.map ~f:begin fun (resp, instrs) ->
       resp, List.map (Yojson.Safe.Util.to_list instrs) ~f:Instrument.of_yojson
     end
@@ -288,7 +288,7 @@ module Order = struct
             (opt "contingencyType" ContingencyType.encoding)
             (opt "text" string)))
 
-  let get_open_orders ?buf ?log ~testnet ~key ~secret
+  let get_open_orders ?extract_exn ?buf ?log ~testnet ~key ~secret
       ?startTime ?endTime ?start ?count ?symbol ?filter ?reverse () =
     let credentials = key, secret in
     let query = List.filter_opt [
@@ -300,16 +300,16 @@ module Order = struct
         Option.map filter ~f:(fun filter -> "filter", [Yojson.Safe.to_string filter]) ;
         Option.map reverse ~f:(fun rev -> "reverse", [Bool.to_string rev]) ;
       ] in
-    call ?buf ?log ~testnet ~credentials ~verb:Get ~query "/api/v1/order" >>|
+    call ?extract_exn ?buf ?log ~testnet ~credentials ~verb:Get ~query "/api/v1/order" >>|
     Or_error.map ~f:begin fun (resp, orders) ->
       resp, List.map (Yojson.Safe.Util.to_list orders) ~f:Order.of_yojson
     end
 
-  let submit_bulk ?buf ?log ~testnet ~key ~secret orders =
+  let submit_bulk ?extract_exn ?buf ?log ~testnet ~key ~secret orders =
     let credentials = key, secret in
     let orders = List.map orders ~f:(Encoding.construct encoding) in
     let body = `Assoc ["orders", `List orders] in
-    call ?buf ?log ~testnet ~credentials ~body ~verb:Post "/api/v1/order/bulk" >>|
+    call ?extract_exn ?buf ?log ~testnet ~credentials ~body ~verb:Post "/api/v1/order/bulk" >>|
     Or_error.map ~f:begin fun (resp, orders) ->
       resp, List.map (Yojson.Safe.Util.to_list orders) ~f:Order.of_yojson
     end
@@ -354,16 +354,16 @@ module Order = struct
          (opt "pegOffsetValue" float)
          (opt "text" string))
 
-  let amend_bulk ?buf ?log ~testnet ~key ~secret orders =
+  let amend_bulk ?extract_exn ?buf ?log ~testnet ~key ~secret orders =
     let credentials = key, secret in
     let orders = List.map orders ~f:(Encoding.construct amend_encoding) in
     let body = `Assoc ["orders", `List orders] in
-    call ?buf ?log ~testnet ~credentials ~body ~verb:Put "/api/v1/order/bulk" >>|
+    call ?extract_exn ?buf ?log ~testnet ~credentials ~body ~verb:Put "/api/v1/order/bulk" >>|
     Or_error.map ~f:begin fun (resp, orders) ->
       resp, List.map (Yojson.Safe.Util.to_list orders) ~f:Order.of_yojson
     end
 
-  let cancel ?buf ?log ~testnet ~key ~secret ?(orderIDs=[]) ?(clOrdIDs=[]) ?text () =
+  let cancel ?extract_exn ?buf ?log ~testnet ~key ~secret ?(orderIDs=[]) ?(clOrdIDs=[]) ?text () =
     let credentials = key, secret in
     let orderIDs = match orderIDs with
       | [] -> None
@@ -376,12 +376,12 @@ module Order = struct
         Option.map clOrdIDs ~f:(fun s -> "clOrdID", `String s) ;
         Option.map text ~f:(fun s -> "text", `String s) ;
       ]) in
-    call ?buf ?log ~testnet ~credentials ~body ~verb:Delete "/api/v1/order" >>|
+    call ?extract_exn ?buf ?log ~testnet ~credentials ~body ~verb:Delete "/api/v1/order" >>|
     Or_error.map ~f:begin fun (resp, orders) ->
       resp, List.map (Yojson.Safe.Util.to_list orders) ~f:Order.of_yojson
     end
 
-  let cancel_all ?buf ?log ~testnet ~key ~secret ?symbol ?filter ?text () =
+  let cancel_all ?extract_exn ?buf ?log ~testnet ~key ~secret ?symbol ?filter ?text () =
     let credentials = key, secret in
     let body = List.filter_opt [
         Option.map symbol ~f:(fun sym -> "symbol", `String sym);
@@ -389,33 +389,33 @@ module Order = struct
         Option.map text ~f:(fun s -> "text", `String s);
       ] in
     let body = `Assoc body in
-    call ?buf ?log ~testnet ~credentials ~body ~verb:Delete "/api/v1/order/all" >>|
+    call ?extract_exn ?buf ?log ~testnet ~credentials ~body ~verb:Delete "/api/v1/order/all" >>|
     Or_error.map ~f:fst
 
-  let cancel_all_after ?buf ?log ~testnet ~key ~secret timeout =
+  let cancel_all_after ?extract_exn ?buf ?log ~testnet ~key ~secret timeout =
     let credentials = key, secret in
     let timeout = Time_ns.Span.to_int_ms timeout in
     let body = `Assoc ["timeout", `Int timeout] in
-    call ?buf ?log ~testnet ~credentials ~body ~verb:Post "/api/v1/order/cancelAllAfter" >>|
+    call ?extract_exn ?buf ?log ~testnet ~credentials ~body ~verb:Post "/api/v1/order/cancelAllAfter" >>|
     Or_error.map ~f:fst
 end
 
 module Position = struct
-  let get ?buf ?log ~testnet ~key ~secret ?filter ?columns ?count () =
+  let get ?extract_exn ?buf ?log ~testnet ~key ~secret ?filter ?columns ?count () =
     let credentials = key, secret in
     let query = List.filter_opt [
         Option.map filter ~f:(fun filter -> "filter", [Yojson.Safe.to_string filter]) ;
         Option.map columns ~f:(fun cs -> "columns", cs) ;
         Option.map count ~f:(fun start -> "count", [Int.to_string start]) ;
       ] in
-    call ?buf ?log ~testnet ~credentials ~verb:Get ~query "/api/v1/position" >>|
+    call ?extract_exn ?buf ?log ~testnet ~credentials ~verb:Get ~query "/api/v1/position" >>|
     Or_error.map ~f:begin fun (resp, positions) ->
       resp, List.map (Yojson.Safe.Util.to_list positions) ~f:Position.of_yojson
     end
 end
 
 module Trade = struct
-  let get ?buf ?log ~testnet
+  let get ?extract_exn ?buf ?log ~testnet
       ?filter ?columns ?count ?start
       ?reverse ?startTime ?endTime ?symbol () =
     let query = List.filter_opt [
@@ -428,7 +428,7 @@ module Trade = struct
         Option.map startTime ~f:(fun ts -> "startTime", [Time_ns.to_string ts]) ;
         Option.map endTime ~f:(fun ts -> "endTime", [Time_ns.to_string ts]) ;
       ] in
-    call ?buf ?log ~testnet ~verb:Get ~query "/api/v1/trade" >>|
+    call ?extract_exn ?buf ?log ~testnet ~verb:Get ~query "/api/v1/trade" >>|
     Or_error.map ~f:begin fun (resp, json) ->
       resp, List.map (Yojson.Safe.Util.to_list json) ~f:Trade.of_yojson
     end

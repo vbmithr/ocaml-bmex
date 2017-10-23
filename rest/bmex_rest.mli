@@ -6,6 +6,7 @@ open Bitmex_types
 
 module Execution : sig
   val trade_history :
+    ?extract_exn:bool ->
     ?buf:Bi_outbuf.t ->
     ?log:Async.Log.t ->
     testnet:bool ->
@@ -22,6 +23,7 @@ module Execution : sig
     (Cohttp.Response.t * Execution.t list) Deferred.Or_error.t
 
   val all_trade_history :
+    ?extract_exn:bool ->
     ?buf:Bi_outbuf.t ->
     ?log:Async.Log.t ->
     testnet:bool ->
@@ -35,6 +37,7 @@ end
 
 module Instrument : sig
   val active_and_indices :
+    ?extract_exn:bool ->
     ?buf:Bi_outbuf.t ->
     ?log:Log.t ->
     testnet:bool ->
@@ -76,6 +79,7 @@ module Order : sig
     unit -> t
 
   val get_open_orders :
+    ?extract_exn:bool ->
     ?buf:Bi_outbuf.t -> ?log:Log.t ->
     testnet:bool ->
     key:string ->
@@ -91,6 +95,7 @@ module Order : sig
     (Cohttp.Response.t * Order.t list) Deferred.Or_error.t
 
   val submit_bulk :
+    ?extract_exn:bool ->
     ?buf:Bi_outbuf.t -> ?log:Log.t ->
     testnet:bool ->
     key:string ->
@@ -123,12 +128,14 @@ module Order : sig
     unit -> amend
 
   val amend_bulk :
+    ?extract_exn:bool ->
     ?buf:Bi_outbuf.t -> ?log:Log.t ->
     testnet:bool -> key:string -> secret:string ->
     amend list ->
     (Cohttp.Response.t * Order.t list) Deferred.Or_error.t
 
   val cancel :
+    ?extract_exn:bool ->
     ?buf:Bi_outbuf.t -> ?log:Log.t ->
     testnet:bool -> key:string -> secret:string ->
     ?orderIDs:Uuid.t list ->
@@ -137,6 +144,7 @@ module Order : sig
     (Cohttp.Response.t * Order.t list) Deferred.Or_error.t
 
   val cancel_all :
+    ?extract_exn:bool ->
     ?buf:Bi_outbuf.t -> ?log:Log.t ->
     testnet:bool -> key:string -> secret:string ->
     ?symbol:string ->
@@ -146,6 +154,7 @@ module Order : sig
     Cohttp.Response.t Deferred.Or_error.t
 
   val cancel_all_after :
+    ?extract_exn:bool ->
     ?buf:Bi_outbuf.t -> ?log:Log.t ->
     testnet:bool -> key:string -> secret:string ->
     Time_ns.Span.t ->
@@ -154,6 +163,7 @@ end
 
 module Position : sig
   val get :
+    ?extract_exn:bool ->
     ?buf:Bi_outbuf.t -> ?log:Log.t ->
     testnet:bool ->
     key:string ->
@@ -167,6 +177,7 @@ end
 
 module Trade : sig
   val get :
+    ?extract_exn:bool ->
     ?buf:Bi_outbuf.t ->
     ?log:Async.Log.t ->
     testnet:bool ->
@@ -204,6 +215,7 @@ module ApiKey : sig
   module Set : Set.S with type Elt.t = t
 
   val dtc :
+    ?extract_exn:bool ->
     ?buf:Bi_outbuf.t ->
     ?log:Log.t ->
     ?username:string ->
@@ -213,4 +225,3 @@ module ApiKey : sig
     unit ->
     (Cohttp.Response.t * t list) Deferred.Or_error.t
 end
-
