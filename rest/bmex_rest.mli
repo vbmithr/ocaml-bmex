@@ -2,6 +2,7 @@ open Core
 open Async
 
 open Bmex
+open Bitmex_types
 
 module Execution : sig
   val trade_history :
@@ -18,7 +19,7 @@ module Execution : sig
     ?filter:Yojson.Safe.json ->
     ?reverse:Core.Bool.t ->
     unit ->
-    (Cohttp.Response.t * Yojson.Safe.json list) Deferred.Or_error.t
+    (Cohttp.Response.t * Execution.t list) Deferred.Or_error.t
 
   val all_trade_history :
     ?buf:Bi_outbuf.t ->
@@ -29,7 +30,7 @@ module Execution : sig
     ?symbol:string ->
     ?filter:Yojson.Safe.json ->
     unit ->
-    (Cohttp.Response.t * Yojson.Safe.json list) Deferred.Or_error.t
+    (Cohttp.Response.t * Execution.t list) Deferred.Or_error.t
 end
 
 module Instrument : sig
@@ -38,7 +39,7 @@ module Instrument : sig
     ?log:Log.t ->
     testnet:bool ->
     unit ->
-    (Cohttp.Response.t * Yojson.Safe.json list) Deferred.Or_error.t
+    (Cohttp.Response.t * Instrument.t list) Deferred.Or_error.t
 end
 
 module Order : sig
@@ -87,7 +88,7 @@ module Order : sig
     ?filter:Yojson.Safe.json ->
     ?reverse:Core.Bool.t ->
     unit ->
-    (Cohttp.Response.t * Yojson.Safe.json list) Deferred.Or_error.t
+    (Cohttp.Response.t * Order.t list) Deferred.Or_error.t
 
   val submit_bulk :
     ?buf:Bi_outbuf.t -> ?log:Log.t ->
@@ -95,7 +96,7 @@ module Order : sig
     key:string ->
     secret:string ->
     t list ->
-    (Cohttp.Response.t * Yojson.Safe.json) Deferred.Or_error.t
+    (Cohttp.Response.t * Order.t list) Deferred.Or_error.t
 
   type amend = {
     orderID : Uuid.t option ;
@@ -125,7 +126,7 @@ module Order : sig
     ?buf:Bi_outbuf.t -> ?log:Log.t ->
     testnet:bool -> key:string -> secret:string ->
     amend list ->
-    (Cohttp.Response.t * Yojson.Safe.json) Deferred.Or_error.t
+    (Cohttp.Response.t * Order.t list) Deferred.Or_error.t
 
   val cancel :
     ?buf:Bi_outbuf.t -> ?log:Log.t ->
@@ -133,7 +134,7 @@ module Order : sig
     ?orderIDs:Uuid.t list ->
     ?clOrdIDs:string list ->
     ?text:string -> unit ->
-    (Cohttp.Response.t * Yojson.Safe.json) Deferred.Or_error.t
+    (Cohttp.Response.t * Order.t list) Deferred.Or_error.t
 
   val cancel_all :
     ?buf:Bi_outbuf.t -> ?log:Log.t ->
@@ -161,7 +162,7 @@ module Position : sig
     ?columns:string list ->
     ?count:Core.Int.t ->
     unit ->
-    (Cohttp.Response.t * Yojson.Safe.json list) Deferred.Or_error.t
+    (Cohttp.Response.t * Position.t list) Deferred.Or_error.t
 end
 
 module Trade : sig

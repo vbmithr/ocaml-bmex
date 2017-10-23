@@ -75,20 +75,6 @@ module Quote : sig
   val merge : t -> t -> t
 end
 
-module Trade : sig
-  type t = {
-    timestamp: Time_ns.t;
-    symbol: string;
-    side: Side.t ;
-    size: int;
-    price: float;
-  }
-
-  val encoding : t Json_encoding.encoding
-  val of_yojson : ?log:Log.t -> Yojson.Safe.json -> t
-  val to_yojson : t -> Yojson.Safe.json
-end
-
 module Crypto : sig
   type api = Rest | Ws
 

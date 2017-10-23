@@ -147,34 +147,6 @@ module Quote = struct
     }
 end
 
-module Trade = struct
-  type t = {
-    timestamp: Time_ns.t;
-    symbol: string;
-    side: Side.t ;
-    size: int;
-    price: float;
-  }
-
-  let encoding =
-    let open Json_encoding in
-    conv
-      (fun { timestamp ; symbol ; side ; size ; price } ->
-         (), (timestamp, symbol, side, size, price))
-      (fun ((), (timestamp, symbol, side, size, price)) ->
-         { timestamp ; symbol ; side ; size ; price })
-      (merge_objs unit
-         (obj5
-            (req "timestamp" Encoding.time)
-            (req "symbol" string)
-            (req "side" Side.encoding)
-            (req "size" int)
-            (req "price" float)))
-
-  let of_yojson = Encoding.destruct_safe encoding
-  let to_yojson = Encoding.construct encoding
-end
-
 module Crypto = struct
   type api = Rest | Ws
 
