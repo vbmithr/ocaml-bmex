@@ -350,6 +350,16 @@ module OrdStatus = struct
     | "AcceptedForBidding" -> AcceptedForBidding
     | "PendingReplace" -> PendingReplace
     | s -> Unknown s
+
+  let to_dtc = function
+    | New -> `order_status_open
+    | PartiallyFilled -> `order_status_partially_filled
+    | Filled -> `order_status_filled
+    | Canceled -> `order_status_canceled
+    | PendingCancel -> `order_status_pending_cancel
+    | Rejected -> `order_status_rejected
+    | PendingNew -> `order_status_pending_open
+    | _ -> `order_status_unspecified
 end
 
 module ExecType = struct

@@ -168,6 +168,19 @@ module OrdStatus : sig
 
   val show : t -> string
   val of_string : string -> t
+  val to_dtc : t ->
+    [ `order_status_canceled
+    | `order_status_filled
+    | `order_status_open
+    | `order_status_order_sent
+    | `order_status_partially_filled
+    | `order_status_pending_cancel
+    | `order_status_pending_cancel_replace
+    | `order_status_pending_child
+    | `order_status_pending_open
+    | `order_status_rejected
+    | `order_status_unspecified ]
+
 end
 
 module ExecType : sig
