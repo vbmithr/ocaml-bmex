@@ -452,6 +452,7 @@ let open_connection
   let port = Option.value_exn ~message:"no port inferred from scheme"
       Uri_services.(tcp_port_of_uri uri)
   in
+  let endp = Host_and_port.create ~host ~port in
   let scheme = Option.value_exn ~message:"no scheme in uri" Uri.(scheme uri) in
   let ws_w_mvar = Mvar.create () in
   let ws_w_mvar_ro = Mvar.read_only ws_w_mvar in
@@ -508,7 +509,7 @@ let open_connection
       ~name:"with_connection"
       ~extract_exn:false
       begin fun () ->
-        Tcp.(with_connection (to_host_and_port host port) tcp_fun)
+        Tcp.(with_connection (Where_to_connect.of_host_and_port endp) tcp_fun)
       end >>| function
     | Ok () -> Option.iter log ~f:(fun log ->
         Log.error log "[WS] connection to %s terminated" uri_str);
