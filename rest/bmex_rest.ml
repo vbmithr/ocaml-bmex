@@ -37,8 +37,6 @@ let mk_headers ?log ?(data="") ?credentials ~verb uri =
     Cohttp.Header.of_list |>
     Option.some
 
-let ssl_config = Conduit_async.Ssl.configure ~version:Tlsv1_2 ()
-
 let call
     ?extract_exn
     ?buf
@@ -64,10 +62,10 @@ let call
   let body = Option.map body_str ~f:Body.of_string in
   let headers = mk_headers ?log ?data:body_str ?credentials ~verb url in
   let call () = match verb with
-    | Get -> Client.get ~ssl_config ?headers url
-    | Post -> Client.post ~ssl_config ?headers ~chunked:false ?body url
-    | Put -> Client.put ~ssl_config ?headers ~chunked:false ?body url
-    | Delete -> Client.delete ~ssl_config ?headers ~chunked:false ?body url in
+    | Get -> Client.get ?headers url
+    | Post -> Client.post ?headers ~chunked:false ?body url
+    | Put -> Client.put ?headers ~chunked:false ?body url
+    | Delete -> Client.delete ?headers ~chunked:false ?body url in
   let rec inner_exn try_id =
     call () >>= fun (resp, body) ->
     Body.to_string body >>= fun body_str ->

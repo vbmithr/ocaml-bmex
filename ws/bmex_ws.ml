@@ -490,7 +490,7 @@ let open_connection
         Log.info log "[WS] connecting to %s" uri_str);
     Socket.(setopt s Opt.nodelay true);
     (if scheme = "https" || scheme = "wss" then
-       Conduit_async_ssl.(ssl_connect (Ssl_config.configure ~version:Tlsv1_2 ()) r w)
+       Conduit_async_ssl.(ssl_connect r w)
      else return (r, w)) >>= fun (ssl_r, ssl_w) ->
     let ws_r, ws_w =
       Websocket_async.client_ez ?log
