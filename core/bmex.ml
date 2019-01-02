@@ -121,8 +121,7 @@ module Crypto = struct
     let prehash = verb_str ^ endp ^ nonce_str ^ data |>
                   Bytes.unsafe_of_string_promise_no_mutation in
     let secret = Bytes.unsafe_of_string_promise_no_mutation secret in
-    let `Hex sign =
-      Hex.of_string (Bytes.unsafe_to_string (Digestif.SHA256.Bytes.hmac ~key:secret prehash)) in
+    let sign = Digestif.SHA256.(hmac_bytes ~key:secret prehash |> to_hex) in
     nonce, sign
 
   let mk_query_params ?log ?(data="") ~key ~secret ~api ~verb uri =

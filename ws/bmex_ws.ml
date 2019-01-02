@@ -490,11 +490,11 @@ let open_connection
         Log.info log "[WS] connecting to %s" uri_str);
     Socket.(setopt s Opt.nodelay true);
     (if scheme = "https" || scheme = "wss" then
-       Conduit_async_ssl.(ssl_connect r w)
+       Conduit_async__.Private_ssl.V2.Ssl.connect r w
      else return (r, w)) >>= fun (ssl_r, ssl_w) ->
     let ws_r, ws_w =
       Websocket_async.client_ez ?log
-        ~heartbeat:(Time_ns.Span.of_int_sec 25) uri s ssl_r ssl_w in
+        ~heartbeat:(Time_ns.Span.of_int_sec 25) uri ssl_r ssl_w in
     don't_wait_for begin
       Deferred.all_unit
         [ Reader.close_finished r ; Writer.close_finished w ] >>= fun () ->
