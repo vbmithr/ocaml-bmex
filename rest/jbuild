@@ -1,5 +1,0 @@
-(library
- ((name        bmex_rest)
-  (public_name bmex-rest)
-  (preprocess (pps (ppx_sexp_conv)))
-  (libraries (bmex bitmex-types cohttp-async))))

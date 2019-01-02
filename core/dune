@@ -1,0 +1,6 @@
+(library
+ (name        bmex)
+ (public_name bmex)
+ (modules bmex)
+ (preprocess (pps ppx_sexp_conv))
+ (libraries hex core async uri digestif.c yojson ocplib-json-typed))
