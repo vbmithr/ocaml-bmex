@@ -8,7 +8,7 @@ module Encoding : sig
   include module type of Json_encoding.Make(Json_repr.Yojson)
 
   val destruct_safe :
-    't Json_encoding.encoding -> ?log:Log.t -> Yojson.Safe.json -> 't
+    't Json_encoding.encoding -> Yojson.Safe.json -> 't
 
   val any_to_yojson : Json_repr.any -> Yojson.Safe.json
   val yojson_to_any : Yojson.Safe.json -> Json_repr.any
@@ -19,6 +19,8 @@ module Encoding : sig
 end
 
 type verb = Get | Post | Put | Delete
+
+val pp_verb : Format.formatter -> verb -> unit
 val show_verb : verb -> string
 
 module Side : sig
@@ -42,7 +44,7 @@ module Quote : sig
   }
 
   val encoding : t Json_encoding.encoding
-  val of_yojson : ?log:Log.t -> Yojson.Safe.json -> t
+  val of_yojson : Yojson.Safe.json -> t
   val to_yojson : t -> Yojson.Safe.json
   val merge : t -> t -> t
 end
@@ -51,7 +53,6 @@ module Crypto : sig
   type api = Rest | Ws
 
   val sign :
-    ?log:Log.t ->
     ?data:string ->
     secret:string ->
     verb:verb ->
@@ -59,7 +60,6 @@ module Crypto : sig
     api -> int * string
 
   val mk_query_params :
-    ?log:Log.t ->
     ?data:string ->
     key:string ->
     secret:string ->

@@ -1,19 +1,21 @@
 open Core
 open Async
 
+let src =
+  Logs.Src.create "bmex.core" ~doc:"BitMEX API - Core"
+
 let url = Uri.of_string "https://www.bitmex.com"
 let testnet_url = Uri.of_string "https://testnet.bitmex.com"
 
 module Encoding = struct
   include Json_encoding.Make(Json_repr.Yojson)
 
-  let destruct_safe encoding ?log value =
+  let destruct_safe encoding value =
     try destruct encoding value with exn ->
-      let value_str = Yojson.Safe.to_string value in
-      Option.iter log ~f:begin fun log ->
-        let error_s = Format.asprintf "%a"
-            (Json_encoding.print_error ?print_unknown:None) exn in
-        Log.error log "%s\n%s\n" value_str error_s
+      Logs.err ~src begin fun m ->
+        m "@[<v 0>%a:@,%a@]"
+          (Yojson.Safe.pretty_print ~std:false) value
+          (Json_encoding.print_error ?print_unknown:None) exn
       end ;
       raise exn
 
@@ -31,12 +33,17 @@ module Encoding = struct
 end
 
 type verb = Get | Post | Put | Delete
+
 let string_of_verb = function
   | Get -> "GET"
   | Post -> "POST"
   | Put -> "PUT"
   | Delete -> "DELETE"
+
 let show_verb = string_of_verb
+
+let pp_verb ppf v =
+  Format.pp_print_string ppf (show_verb v)
 
 module Side = struct
   type t = [ `buy | `sell | `buy_sell_unset ]
@@ -113,20 +120,20 @@ module Crypto = struct
   | Rest -> Time_ns.(now () |> to_int_ns_since_epoch) / 1_000_000_000 + 30
   | Ws -> Time_ns.(now () |> to_int_ns_since_epoch) / 1_000
 
-  let sign ?log ?(data="") ~secret ~verb ~endp kind =
+  let sign ?(data="") ~secret ~verb ~endp kind =
     let verb_str = string_of_verb verb in
     let nonce = gen_nonce kind in
     let nonce_str = Int.to_string nonce in
-    Option.iter log ~f:(fun log -> Log.debug log "sign %s" nonce_str);
+    Logs.debug (fun m -> m "sign %s" nonce_str) ;
     let prehash = verb_str ^ endp ^ nonce_str ^ data |>
                   Bytes.unsafe_of_string_promise_no_mutation in
     let secret = Bytes.unsafe_of_string_promise_no_mutation secret in
     let sign = Digestif.SHA256.(hmac_bytes ~key:secret prehash |> to_hex) in
     nonce, sign
 
-  let mk_query_params ?log ?(data="") ~key ~secret ~api ~verb uri =
+  let mk_query_params ?(data="") ~key ~secret ~api ~verb uri =
     let endp = Uri.path_and_query uri in
-    let nonce, signature = sign ?log ~secret ~verb ~endp ~data api in
+    let nonce, signature = sign ~secret ~verb ~endp ~data api in
     [ (match api with Rest -> "api-expires" | Ws -> "api-nonce"), [Int.to_string nonce];
       "api-key", [key];
       "api-signature", [signature];

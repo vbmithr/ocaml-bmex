@@ -3,6 +3,9 @@ open Async
 
 open Bmex
 
+let src =
+  Logs.Src.create "bmex.ws" ~doc:"BitMEX API - Websockets"
+
 module Topic = struct
   type t =
     (* private *)
@@ -245,7 +248,7 @@ module Request = struct
           | _ -> invalid_arg "Request.encoding")
     ]
 
-  let of_yojson ~log = Encoding.destruct_safe ~log encoding
+  let of_yojson = Encoding.destruct_safe encoding
   let to_yojson = Encoding.construct encoding
 end
 
@@ -378,7 +381,7 @@ module Response = struct
         (fun u -> Update u) ;
     ]
 
-  let of_yojson ~log = Encoding.destruct_safe ~log encoding
+  let of_yojson = Encoding.destruct_safe encoding
   let to_yojson = Encoding.construct encoding
 end
 
@@ -393,17 +396,17 @@ module MD = struct
     | Subscribe of stream
     | Unsubscribe of stream
 
-  let of_yojson ~log = function
-    | `List (`Int typ :: `String id :: `String topic :: payload) -> begin
+  let of_yojson = function
+    | (`List (`Int typ :: `String id :: `String topic :: payload) as json) -> begin
         match typ, payload with
         | 0, [payload] -> Message { stream = { id ; topic } ; payload }
         | 1, [] -> Subscribe { id ; topic }
         | 2, [] -> Unsubscribe { id ; topic }
-        | _ -> invalid_arg "MD.of_yojson"
+        | _ -> invalid_argf "MD.of_yojson: %s"
+                 (Yojson.Safe.to_string json) ()
       end
     | #Yojson.Safe.json as json ->
-      Log.error log "%s" (Yojson.Safe.to_string json) ;
-      invalid_arg "MD.of_yojson"
+      invalid_argf "MD.of_yojson: %s" (Yojson.Safe.to_string json) ()
 
   let to_yojson = function
     | Message { stream = { id ; topic } ; payload } ->
@@ -435,19 +438,17 @@ let open_connection
     ?connected
     ?to_ws
     ?(query_params=[])
-    ?log
     ?auth
     ~testnet ~md ~topics () =
   let uri = uri_of_opts testnet md in
   let auth_params = match auth with
     | None -> []
-    | Some (key, secret) -> Crypto.mk_query_params ?log ~key ~secret ~api:Ws ~verb:Get uri
+    | Some (key, secret) -> Crypto.mk_query_params ~key ~secret ~api:Ws ~verb:Get uri
   in
   let uri = Uri.add_query_params uri @@
     if md then [] else
       ["subscribe", topics] @ auth_params @ query_params
   in
-  let uri_str = Uri.to_string uri in
   let host = Option.value_exn ~message:"no host in uri" Uri.(host uri) in
   let port = Option.value_exn ~message:"no port inferred from scheme"
       Uri_services.(tcp_port_of_uri uri)
@@ -470,30 +471,29 @@ let open_connection
     Monitor.handle_errors begin fun () ->
       Pipe.iter ~continue_on_error:true to_ws ~f:begin fun msg_json ->
         let msg_str = Yojson.Safe.to_string msg_json in
-        Option.iter log ~f:(fun log -> Log.debug log "-> %s" msg_str);
+        Logs_async.debug ~src (fun m -> m "-> %s" msg_str) >>= fun () ->
         try_write msg_str
       end
-    end
-      (fun exn -> Option.iter log ~f:(fun log ->
-           Log.error log "%s" @@ Exn.to_string exn))
-  end;
+    end (fun exn -> Logs.err ~src (fun m -> m "%a" Exn.pp exn))
+  end ;
   let client_r, client_w = Pipe.create () in
   let cleanup r w ws_r ws_w =
-    Option.iter log ~f:(fun log ->
-        Log.debug log "[WS] post-disconnection cleanup") ;
+    Logs_async.debug ~src begin fun m ->
+      m "post-disconnection cleanup"
+    end >>= fun () ->
     Pipe.close ws_w ;
     Pipe.close_read ws_r ;
     Deferred.all_unit [Reader.close r ; Writer.close w ] ;
   in
   let tcp_fun s r w =
-    Option.iter log ~f:(fun log ->
-        Log.info log "[WS] connecting to %s" uri_str);
+    Logs_async.info ~src
+      (fun m -> m "connecting to %a" Uri.pp_hum uri) >>= fun () ->
     Socket.(setopt s Opt.nodelay true);
     (if scheme = "https" || scheme = "wss" then
        Conduit_async__.Private_ssl.V2.Ssl.connect r w
      else return (r, w)) >>= fun (ssl_r, ssl_w) ->
     let ws_r, ws_w =
-      Websocket_async.client_ez ?log
+      Websocket_async.client_ez
         ~heartbeat:(Time_ns.Span.of_int_sec 25) uri ssl_r ssl_w in
     don't_wait_for begin
       Deferred.all_unit
@@ -510,12 +510,15 @@ let open_connection
       ~extract_exn:false
       begin fun () ->
         Tcp.(with_connection (Where_to_connect.of_host_and_port endp) tcp_fun)
-      end >>| function
-    | Ok () -> Option.iter log ~f:(fun log ->
-        Log.error log "[WS] connection to %s terminated" uri_str);
-    | Error err -> Option.iter log ~f:(fun log ->
-        Log.error log "[WS] connection to %s raised %s"
-          uri_str (Error.to_string_hum err))
+      end >>= function
+    | Ok () ->
+      Logs_async.err ~src begin fun m ->
+        m "connection to %a terminated" Uri.pp_hum uri
+        end
+    | Error err ->
+      Logs_async.err ~src begin fun m ->
+        m "connection to %a raised %a" Uri.pp_hum uri Error.pp err
+      end
   end >>= fun () ->
     if Pipe.is_closed client_r then Deferred.unit
     else Clock_ns.after @@ Time_ns.Span.of_int_sec 10 >>= loop

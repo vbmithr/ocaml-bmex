@@ -8,7 +8,6 @@ module Execution : sig
   val trade_history :
     ?extract_exn:bool ->
     ?buf:Bi_outbuf.t ->
-    ?log:Async.Log.t ->
     testnet:bool ->
     key:string ->
     secret:string ->
@@ -25,7 +24,6 @@ module Execution : sig
   val all_trade_history :
     ?extract_exn:bool ->
     ?buf:Bi_outbuf.t ->
-    ?log:Async.Log.t ->
     testnet:bool ->
     key:string ->
     secret:string ->
@@ -39,7 +37,6 @@ module Instrument : sig
   val active_and_indices :
     ?extract_exn:bool ->
     ?buf:Bi_outbuf.t ->
-    ?log:Log.t ->
     testnet:bool ->
     unit ->
     (Cohttp.Response.t * Instrument.t list) Deferred.Or_error.t
@@ -80,7 +77,7 @@ module Order : sig
 
   val get_open_orders :
     ?extract_exn:bool ->
-    ?buf:Bi_outbuf.t -> ?log:Log.t ->
+    ?buf:Bi_outbuf.t ->
     testnet:bool ->
     key:string ->
     secret:string ->
@@ -96,7 +93,7 @@ module Order : sig
 
   val submit_bulk :
     ?extract_exn:bool ->
-    ?buf:Bi_outbuf.t -> ?log:Log.t ->
+    ?buf:Bi_outbuf.t ->
     testnet:bool ->
     key:string ->
     secret:string ->
@@ -129,14 +126,14 @@ module Order : sig
 
   val amend_bulk :
     ?extract_exn:bool ->
-    ?buf:Bi_outbuf.t -> ?log:Log.t ->
+    ?buf:Bi_outbuf.t ->
     testnet:bool -> key:string -> secret:string ->
     amend list ->
     (Cohttp.Response.t * Order.t list) Deferred.Or_error.t
 
   val cancel :
     ?extract_exn:bool ->
-    ?buf:Bi_outbuf.t -> ?log:Log.t ->
+    ?buf:Bi_outbuf.t ->
     testnet:bool -> key:string -> secret:string ->
     ?orderIDs:Uuid.t list ->
     ?clOrdIDs:string list ->
@@ -145,7 +142,7 @@ module Order : sig
 
   val cancel_all :
     ?extract_exn:bool ->
-    ?buf:Bi_outbuf.t -> ?log:Log.t ->
+    ?buf:Bi_outbuf.t ->
     testnet:bool -> key:string -> secret:string ->
     ?symbol:string ->
     ?filter:Yojson.Safe.json ->
@@ -155,7 +152,7 @@ module Order : sig
 
   val cancel_all_after :
     ?extract_exn:bool ->
-    ?buf:Bi_outbuf.t -> ?log:Log.t ->
+    ?buf:Bi_outbuf.t ->
     testnet:bool -> key:string -> secret:string ->
     Time_ns.Span.t ->
     Cohttp.Response.t Deferred.Or_error.t
@@ -164,7 +161,7 @@ end
 module Position : sig
   val get :
     ?extract_exn:bool ->
-    ?buf:Bi_outbuf.t -> ?log:Log.t ->
+    ?buf:Bi_outbuf.t ->
     testnet:bool ->
     key:string ->
     secret:string ->
@@ -179,7 +176,6 @@ module Trade : sig
   val get :
     ?extract_exn:bool ->
     ?buf:Bi_outbuf.t ->
-    ?log:Async.Log.t ->
     testnet:bool ->
     ?filter:Yojson.Safe.json ->
     ?columns:string list ->
@@ -217,7 +213,6 @@ module ApiKey : sig
   val dtc :
     ?extract_exn:bool ->
     ?buf:Bi_outbuf.t ->
-    ?log:Log.t ->
     ?username:string ->
     testnet:bool ->
     key:string ->
