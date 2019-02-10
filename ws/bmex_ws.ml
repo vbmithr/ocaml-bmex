@@ -289,7 +289,7 @@ module Response = struct
     type t = {
       table : Topic.t ;
       action : action ;
-      data : Yojson.Safe.json list ;
+      data : Yojson.Safe.t list ;
     }
 
     let encoding =
@@ -392,7 +392,7 @@ module MD = struct
   }
 
   type t =
-    | Message of { stream : stream ; payload : Yojson.Safe.json }
+    | Message of { stream : stream ; payload : Yojson.Safe.t }
     | Subscribe of stream
     | Unsubscribe of stream
 
@@ -405,7 +405,7 @@ module MD = struct
         | _ -> invalid_argf "MD.of_yojson: %s"
                  (Yojson.Safe.to_string json) ()
       end
-    | #Yojson.Safe.json as json ->
+    | #Yojson.Safe.t as json ->
       invalid_argf "MD.of_yojson: %s" (Yojson.Safe.to_string json) ()
 
   let to_yojson = function
@@ -433,7 +433,7 @@ let uri_of_opts testnet md =
     (if testnet then testnet_url else url)
     (if md then "realtimemd" else "realtime")
 
-let open_connection
+let connect
     ?(buf=Bi_outbuf.create 4096)
     ?connected
     ?to_ws

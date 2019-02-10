@@ -1,5 +1,4 @@
 open Core
-open Async
 
 val url : Uri.t
 val testnet_url : Uri.t
@@ -8,10 +7,10 @@ module Encoding : sig
   include module type of Json_encoding.Make(Json_repr.Yojson)
 
   val destruct_safe :
-    't Json_encoding.encoding -> Yojson.Safe.json -> 't
+    't Json_encoding.encoding -> Yojson.Safe.t -> 't
 
-  val any_to_yojson : Json_repr.any -> Yojson.Safe.json
-  val yojson_to_any : Yojson.Safe.json -> Json_repr.any
+  val any_to_yojson : Json_repr.any -> Yojson.Safe.t
+  val yojson_to_any : Yojson.Safe.t -> Json_repr.any
 
   val time : Time_ns.t Json_encoding.encoding
   val uint : int Json_encoding.encoding
@@ -44,8 +43,8 @@ module Quote : sig
   }
 
   val encoding : t Json_encoding.encoding
-  val of_yojson : Yojson.Safe.json -> t
-  val to_yojson : t -> Yojson.Safe.json
+  val of_yojson : Yojson.Safe.t -> t
+  val to_yojson : t -> Yojson.Safe.t
   val merge : t -> t -> t
 end
 

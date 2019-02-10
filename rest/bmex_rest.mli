@@ -16,7 +16,7 @@ module Execution : sig
     ?start:Core.Int.t ->
     ?count:Core.Int.t ->
     ?symbol:string ->
-    ?filter:Yojson.Safe.json ->
+    ?filter:Yojson.Safe.t ->
     ?reverse:Core.Bool.t ->
     unit ->
     (Cohttp.Response.t * Execution.t list) Deferred.Or_error.t
@@ -28,7 +28,7 @@ module Execution : sig
     key:string ->
     secret:string ->
     ?symbol:string ->
-    ?filter:Yojson.Safe.json ->
+    ?filter:Yojson.Safe.t ->
     unit ->
     (Cohttp.Response.t * Execution.t list) Deferred.Or_error.t
 end
@@ -86,7 +86,7 @@ module Order : sig
     ?start:Core.Int.t ->
     ?count:Core.Int.t ->
     ?symbol:string ->
-    ?filter:Yojson.Safe.json ->
+    ?filter:Yojson.Safe.t ->
     ?reverse:Core.Bool.t ->
     unit ->
     (Cohttp.Response.t * Order.t list) Deferred.Or_error.t
@@ -145,7 +145,7 @@ module Order : sig
     ?buf:Bi_outbuf.t ->
     testnet:bool -> key:string -> secret:string ->
     ?symbol:string ->
-    ?filter:Yojson.Safe.json ->
+    ?filter:Yojson.Safe.t ->
     ?text:string ->
     unit ->
     Cohttp.Response.t Deferred.Or_error.t
@@ -165,7 +165,7 @@ module Position : sig
     testnet:bool ->
     key:string ->
     secret:string ->
-    ?filter:Yojson.Safe.json ->
+    ?filter:Yojson.Safe.t ->
     ?columns:string list ->
     ?count:Core.Int.t ->
     unit ->
@@ -177,7 +177,7 @@ module Trade : sig
     ?extract_exn:bool ->
     ?buf:Bi_outbuf.t ->
     testnet:bool ->
-    ?filter:Yojson.Safe.json ->
+    ?filter:Yojson.Safe.t ->
     ?columns:string list ->
     ?count:int ->
     ?start:int ->

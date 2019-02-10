@@ -113,7 +113,7 @@ module ApiKey = struct
     let dtc_of_any any =
       match Encoding.any_to_yojson any with
       | `List [`String "sierra-dtc"; `Assoc ["username", `String username]] -> Dtc username
-      | #Yojson.Safe.json -> invalid_arg "ApiKey.dtc_of_any"
+      | #Yojson.Safe.t -> invalid_arg "ApiKey.dtc_of_any"
 
     let encoding =
       let open Json_encoding in
@@ -140,7 +140,7 @@ module ApiKey = struct
       created: Time_ns.t;
     } [@@deriving sexp]
 
-    let compare { id } { id = id2 } =
+    let compare { id ; _ } { id = id2 ; _ } =
       String.compare id id2
   end
 
@@ -172,7 +172,7 @@ module ApiKey = struct
   let dtc ?extract_exn ?buf ?username ~testnet ~key ~secret () =
     let credentials = key, secret in
     let path = "/api/v1/apiKey/dtc/" ^
-               match username with None -> "all" | Some u -> "get" in
+               match username with None -> "all" | Some _ -> "get" in
     let query = match username with None -> [] | Some u -> ["get", [u]] in
     call ?extract_exn ?buf ~credentials ~testnet ~query ~verb:Get path >>|
     Or_error.map ~f:begin fun (resp, json) ->

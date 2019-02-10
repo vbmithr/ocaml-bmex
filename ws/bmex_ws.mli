@@ -70,8 +70,8 @@ module Request : sig
   val authkey : key:string -> nonce:int -> signature:string -> t
 
   val encoding : t Json_encoding.encoding
-  val to_yojson : t -> Yojson.Safe.json
-  val of_yojson : Yojson.Safe.json -> t
+  val to_yojson : t -> Yojson.Safe.t
+  val of_yojson : Yojson.Safe.t -> t
 end
 
 module Response : sig
@@ -97,7 +97,7 @@ module Response : sig
     type t = {
       table : Topic.t ;
       action : action ;
-      data : Yojson.Safe.json list ;
+      data : Yojson.Safe.t list ;
     }
   end
 
@@ -116,8 +116,8 @@ module Response : sig
     | Update of Update.t
 
   val encoding : t Json_encoding.encoding
-  val to_yojson : t -> Yojson.Safe.json
-  val of_yojson : Yojson.Safe.json -> t
+  val to_yojson : t -> Yojson.Safe.t
+  val of_yojson : Yojson.Safe.t -> t
 end
 
 module MD : sig
@@ -127,27 +127,27 @@ module MD : sig
   }
 
   type t =
-    | Message of { stream : stream ; payload : Yojson.Safe.json }
+    | Message of { stream : stream ; payload : Yojson.Safe.t }
     | Subscribe of stream
     | Unsubscribe of stream
 
-  val of_yojson : Yojson.Safe.json -> t
-  val to_yojson : t -> Yojson.Safe.json
+  val of_yojson : Yojson.Safe.t -> t
+  val to_yojson : t -> Yojson.Safe.t
 
   val subscribe : id:string -> topic:string -> t
   val unsubscribe : id:string -> topic:string -> t
-  val message : id:string -> topic:string -> payload:Yojson.Safe.json -> t
+  val message : id:string -> topic:string -> payload:Yojson.Safe.t -> t
   val auth : id:string -> topic:string -> key:string -> secret:string -> t
 end
 
-val open_connection :
+val connect :
   ?buf:Bi_outbuf.t ->
   ?connected:unit Condition.t ->
-  ?to_ws:Yojson.Safe.json Pipe.Reader.t ->
+  ?to_ws:Yojson.Safe.t Pipe.Reader.t ->
   ?query_params:(string * string list) list ->
   ?auth:string * string ->
   testnet:bool ->
   md:bool ->
   topics:string list ->
-  unit -> Yojson.Safe.json Pipe.Reader.t
+  unit -> Yojson.Safe.t Pipe.Reader.t
 
