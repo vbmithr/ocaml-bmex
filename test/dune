@@ -8,3 +8,15 @@
    logs-async-reporter
    bmex-ws
    bmex-ws-async))
+
+(executable
+ (name fh)
+ (modules fh)
+ (public_name bmex-ws-fh)
+ (package bmex-ws-async)
+ (preprocess (pps ppx_jane ppx_sexp_conv))
+ (libraries
+   logs-async-reporter
+   bmex-ws
+   bmex-ws-async
+   kx-async))
