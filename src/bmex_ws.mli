@@ -40,6 +40,16 @@ module Topic : sig
   val pp : Format.formatter -> t -> unit
 end
 
+module Quote : sig
+  type t = {
+    symbol: string ;
+    id: int64 ;
+    side: [`Buy | `Sell] ;
+    size: int option ;
+    price: float option ;
+  } [@@deriving sexp]
+end
+
 module Request : sig
   module Sub : sig
     type t = {
@@ -90,11 +100,16 @@ module Response : sig
     val show_action : action -> string
     val pp_action : Format.formatter -> action -> unit
 
+    type data =
+      | Quote of Quote.t list
+      | Unknown of Yojson.Safe.t
+    [@@deriving sexp]
+
     type t = {
       table : Topic.t ;
       action : action ;
-      data : Yojson.Safe.t list ;
-    }
+      data : data ;
+    } [@@deriving sexp]
   end
 
   module Response : sig

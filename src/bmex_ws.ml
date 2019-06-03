@@ -147,6 +147,35 @@ module Topic = struct
   let pp ppf t = Format.fprintf ppf "%s" (to_string t)
 end
 
+module Quote = struct
+  type t = {
+    symbol: string ;
+    id: int64 ;
+    side: [`Buy | `Sell] ;
+    size: int option ;
+    price: float option ;
+  } [@@deriving sexp]
+
+  let side_encoding =
+    let open Json_encoding in
+    string_enum [
+      "Buy", `Buy ;
+      "Sell", `Sell ;
+    ]
+
+  let encoding =
+    let open Json_encoding in
+    conv
+      (fun { symbol ; id ; side ; size ; price } -> (symbol, id, side, size, price))
+      (fun (symbol, id, side, size, price) -> { symbol ; id ; side ; size ; price })
+      (obj5
+         (req "symbol" string)
+         (req "id" int53)
+         (req "side" side_encoding)
+         (opt "size" int)
+         (opt "price" float))
+end
+
 module Request = struct
   module Sub = struct
     type t = {
@@ -277,26 +306,40 @@ module Response = struct
         "delete", Delete ;
       ]
 
+    type data =
+      | Quote of Quote.t list
+      | Unknown of Yojson.Safe.t [@@deriving sexp]
+
+    let yojson_to_repr = Json_repr.any_to_repr (module Json_repr.Yojson)
+    let repr_to_yojson = Json_repr.repr_to_any (module Json_repr.Yojson)
+
+    let yojson_encoding =
+      let open Json_encoding in
+      conv repr_to_yojson yojson_to_repr any_value
+
+    let data_encoding =
+      let open Json_encoding in
+      union [
+        case (list Quote.encoding) (function Quote qs -> Some qs | _ -> None ) (fun qs -> Quote qs) ;
+        case yojson_encoding (function Unknown u -> Some u | _ -> None) (fun u -> Unknown u) ;
+      ]
+
     type t = {
       table : Topic.t ;
       action : action ;
-      data : Yojson.Safe.t list ;
+      data :  data ;
     } [@@deriving sexp]
 
     let encoding =
       let open Json_encoding in
       conv
-        (fun { table ; action ; data } ->
-           let data = List.map Yojson_encoding.yojson_to_any data in
-           (), (table, action, data))
-        (fun ((), (table, action, data)) ->
-           let data = List.map Yojson_encoding.any_to_yojson data in
-           { table ; action ; data })
+        (fun { table ; action ; data } -> (), (table, action, data))
+        (fun ((), (table, action, data)) -> { table ; action ; data })
         (merge_objs unit
            (obj3
               (req "table" Topic.encoding)
               (req "action" action_encoding)
-              (req "data" (list any_value))))
+              (req "data" data_encoding)))
   end
 
   module Welcome = struct

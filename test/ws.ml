@@ -28,7 +28,7 @@ let process_user_cmd w =
 let main () =
   with_connection begin fun r w ->
     let log_incoming msg =
-      Log_async.debug (fun m -> m "%a" Response.pp msg) in
+      Log_async.info (fun m -> m "%a" Response.pp msg) in
     Deferred.all_unit [
       process_user_cmd w ;
       Pipe.iter r ~f:log_incoming
