@@ -20,9 +20,8 @@ module Topic : sig
     | Funding
     | Insurance
     | Liquidation
+    | OrderBookL2_25
     | OrderBookL2
-    | OrderBook
-    | OrderBook25
     | OrderBook10
     | Quote
     | Trade
@@ -49,6 +48,8 @@ module Request : sig
     }
 
     val create : ?symbol:string -> Topic.t -> t
+    val of_string : string -> t
+    val to_string : t -> string
   end
 
   type t =

@@ -7,22 +7,15 @@ open Bmex_ws_async
 let src = Logs.Src.create "bmex.ws-test"  ~doc:"BitMEX API - WS test application"
 module Log_async = (val Logs_async.src_log src : Logs_async.LOG)
 
-let process_user_cmd _w =
+let process_user_cmd w =
   let process s =
     match String.split s ~on:' ' with
-    (* | "unsubscribe" :: chanid :: _ ->
-     *   let chanid = int_of_string chanid in
-     *   Pipe.write w (Unsubscribe { chanid ; reqid = None })
-     * | "ping" :: v :: _ ->
-     *   Pipe.write w (Ping (int_of_string_opt v))
-     * | "ping" :: _ ->
-     *   Pipe.write w (Ping None)
-     * | "trades" :: pair ->
-     *   let pairs = List.map ~f:Pair.of_string_exn pair in
-     *   Pipe.write w (Subscribe (trades pairs))
-     * | "books" :: pair ->
-     *   let pairs = List.map ~f:Pair.of_string_exn pair in
-     *   Pipe.write w (Subscribe (book10 pairs)) *)
+    | "subscribe" :: subs ->
+      let subs = List.map subs ~f:Request.Sub.of_string in
+      Pipe.write w (Request.Subscribe subs)
+    | "unsubscribe" :: subs ->
+      let subs = List.map subs ~f:Request.Sub.of_string in
+      Pipe.write w (Request.Unsubscribe subs)
     | h :: _ -> Log_async.err (fun m -> m "Unknown command %s" h)
     | [] -> Log_async.err (fun m -> m "Empty command")
   in

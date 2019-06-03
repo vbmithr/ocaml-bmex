@@ -23,9 +23,8 @@ module Topic = struct
     | Funding
     | Insurance
     | Liquidation
+    | OrderBookL2_25
     | OrderBookL2
-    | OrderBook
-    | OrderBook25
     | OrderBook10
     | Quote
     | Trade
@@ -58,9 +57,8 @@ module Topic = struct
     | "funding" -> Funding
     | "insurance" -> Insurance
     | "liquidation" -> Liquidation
+    | "orderBookL2_25" -> OrderBookL2_25
     | "orderBookL2" -> OrderBookL2
-    | "orderBook" -> OrderBook
-    | "orderBook25" -> OrderBook25
     | "orderBook10" -> OrderBook10
     | "quote" -> Quote
     | "trade" -> Trade
@@ -95,9 +93,8 @@ module Topic = struct
     | Funding -> "funding"
     | Insurance -> "insurance"
     | Liquidation -> "liquidation"
+    | OrderBookL2_25 -> "orderBookL2_25"
     | OrderBookL2 -> "orderBookL2"
-    | OrderBook -> "orderBook"
-    | OrderBook25 -> "orderBook25"
     | OrderBook10 -> "orderBook10"
     | Quote -> "quote"
     | Trade -> "trade"
@@ -131,9 +128,8 @@ module Topic = struct
       "funding", Funding ;
       "insurance", Insurance ;
       "liquidation", Liquidation ;
+      "orderBookL2_25", OrderBookL2_25 ;
       "orderBookL2", OrderBookL2 ;
-      "orderBook", OrderBook ;
-      "orderBook25", OrderBook25 ;
       "orderBook10", OrderBook10 ;
       "quote", Quote ;
       "trade", Trade ;
