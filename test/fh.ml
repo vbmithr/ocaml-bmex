@@ -58,21 +58,23 @@ let row =
 let process_msgs kw msg =
   match msg with
   | Response.Update { table; action = _ ; data } -> begin
-    match table, data with
+      match table, data with
       | OrderBookL2, Quote qs ->
+        Log_async.info (fun m -> m "%a" Response.pp msg) >>= fun () ->
         Pipe.write kw ("upd", Kx.[|construct (list row) (Array.of_list qs)|])
       | _ -> Deferred.unit
-  end
+    end
   | Error _ ->
     Log_async.err (fun m -> m "%a" Response.pp msg)
   | _ ->
     Log_async.info (fun m -> m "%a" Response.pp msg)
 
-let main () =
+let main testnet symbol =
   Kx_async.with_connection
     (Uri.make ~scheme:"kdb" ~host:"localhost" ~port:5042 ())
     ~f:begin fun _kr kw ->
-      with_connection begin fun r w ->
+      with_connection ~testnet
+        ~topics:[Request.Sub.create ~symbol Topic.OrderBookL2] begin fun r w ->
         Deferred.all_unit [
           process_user_cmd w ;
           Pipe.iter r ~f:(process_msgs kw)
@@ -85,9 +87,11 @@ let () =
   Command.async ~summary:"BitMEX toy feed handler" begin
     let open Command.Let_syntax in
     [%map_open
-      let () = Logs_async_reporter.set_level_via_param None in
+      let () = Logs_async_reporter.set_level_via_param None
+      and testnet = flag "testnet" no_arg ~doc:" Use testnet"
+      and sym = anon ("symbol" %: string) in
       fun () ->
         Logs.set_reporter (Logs_async_reporter.reporter ()) ;
-        main ()
+        main testnet sym
     ] end |>
   Command.run
