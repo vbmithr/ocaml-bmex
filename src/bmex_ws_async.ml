@@ -29,7 +29,8 @@ let connect
     match md, topics with
     | true, _ -> []
     | false, [] -> auth_params @ query_params
-    | false, topics -> ["subscribe", topics] @ auth_params @ query_params in
+    | false, topics -> ["subscribe", List.map ~f:Request.Sub.to_string topics] @
+                       auth_params @ query_params in
   let url = Uri.add_query_params url query_params in
   Fastws_async.connect_ez url >>= fun (r, w, cleaned_up) ->
   let client_read = Pipe.map' r ~f:begin fun msgq ->
@@ -64,7 +65,8 @@ let with_connection
     match md, topics with
     | true, _ -> []
     | false, [] -> auth_params @ query_params
-    | false, topics -> ["subscribe", topics] @ auth_params @ query_params in
+    | false, topics -> ["subscribe", List.map ~f:Request.Sub.to_string topics] @
+                       auth_params @ query_params in
   let url = Uri.add_query_params url query_params in
   Fastws_async.with_connection_ez url ~f:begin fun r w ->
     let client_read = Pipe.map' r ~f:begin fun msgq ->

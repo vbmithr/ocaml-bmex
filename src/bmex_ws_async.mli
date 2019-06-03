@@ -8,7 +8,7 @@ val connect :
   ?auth:string * string ->
   ?testnet:bool ->
   ?md:bool ->
-  ?topics:string list -> unit ->
+  ?topics:Request.Sub.t list -> unit ->
   (Response.t Pipe.Reader.t *
    Request.t Pipe.Writer.t * unit Deferred.t) Deferred.t
 
@@ -18,6 +18,6 @@ val with_connection :
   ?auth:string * string ->
   ?testnet:bool ->
   ?md:bool ->
-  ?topics:string list ->
+  ?topics:Request.Sub.t list ->
   (Response.t Pipe.Reader.t -> Request.t Pipe.Writer.t  -> 'a Deferred.t) ->
   'a Deferred.t
