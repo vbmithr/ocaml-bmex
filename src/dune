@@ -1,0 +1,28 @@
+(library
+ (name        bmex)
+ (public_name bmex)
+ (modules bmex)
+ (preprocess (pps ppx_sexp_conv))
+ (libraries
+  hex
+  core
+  async
+  logs
+  uri
+  digestif.c
+  yojson
+  ocplib-json-typed))
+
+(library
+ (name        bmex_rest)
+ (public_name bmex-rest)
+ (modules bmex_rest)
+ (preprocess (pps ppx_sexp_conv))
+ (libraries bmex bitmex-types logs-async cohttp-async))
+
+(library
+ (name        bmex_ws)
+ (public_name bmex-ws)
+ (modules bmex_ws)
+ (preprocess (pps ppx_sexp_conv))
+ (libraries bmex logs-async websocket-async))

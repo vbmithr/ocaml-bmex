@@ -1,5 +1,0 @@
-(library
- (name        bmex_ws)
- (public_name bmex-ws)
- (preprocess (pps ppx_sexp_conv))
- (libraries bmex logs-async websocket-async))
