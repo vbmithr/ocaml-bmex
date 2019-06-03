@@ -1,9 +1,36 @@
-open Core
-
 val url : Uri.t
 val testnet_url : Uri.t
 
-module Encoding : sig
+module Ptime : sig
+  include module type of Ptime
+    with type t = Ptime.t
+     and type span = Ptime.span
+
+  val t_of_sexp : Sexplib.Sexp.t -> Ptime.t
+  val sexp_of_t : Ptime.t -> Sexplib.Sexp.t
+  val encoding : t Json_encoding.encoding
+end
+
+module Uuidm : sig
+  include module type of Uuidm
+    with type t = Uuidm.t
+
+  val t_of_sexp : Sexplib.Sexp.t -> t
+  val sexp_of_t : t -> Sexplib.Sexp.t
+  val encoding : t Json_encoding.encoding
+end
+
+module Yojson : sig
+  module Safe : sig
+    include module type of Yojson.Safe
+      with type t = Yojson.Safe.t
+
+    val t_of_sexp : Sexplib.Sexp.t -> t
+    val sexp_of_t : t -> Sexplib.Sexp.t
+  end
+end
+
+module Yojson_encoding : sig
   include module type of Json_encoding.Make(Json_repr.Yojson)
 
   val destruct_safe :
@@ -11,10 +38,6 @@ module Encoding : sig
 
   val any_to_yojson : Json_repr.any -> Yojson.Safe.t
   val yojson_to_any : Yojson.Safe.t -> Json_repr.any
-
-  val time : Time_ns.t Json_encoding.encoding
-  val uint : int Json_encoding.encoding
-  val uuid : Uuid.t Json_encoding.encoding
 end
 
 type verb = Get | Post | Put | Delete
@@ -34,7 +57,7 @@ end
 
 module Quote : sig
   type t = {
-    timestamp: Time_ns.t ;
+    timestamp: Ptime.t ;
     symbol: string ;
     bidPrice: float option ;
     bidSize: int option ;
@@ -43,9 +66,7 @@ module Quote : sig
   }
 
   val encoding : t Json_encoding.encoding
-  val of_yojson : Yojson.Safe.t -> t
-  val to_yojson : t -> Yojson.Safe.t
-  val merge : t -> t -> t
+    (* val merge : t -> t -> t *)
 end
 
 module Crypto : sig

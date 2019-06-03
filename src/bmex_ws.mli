@@ -1,6 +1,3 @@
-open Core
-open Async
-
 module Topic : sig
   type t =
     (* private *)
@@ -70,15 +67,13 @@ module Request : sig
   val authkey : key:string -> nonce:int -> signature:string -> t
 
   val encoding : t Json_encoding.encoding
-  val to_yojson : t -> Yojson.Safe.t
-  val of_yojson : Yojson.Safe.t -> t
 end
 
 module Response : sig
   module Welcome : sig
     type t = {
       version : string ;
-      timestamp : Time_ns.t ;
+      timestamp : Ptime.t ;
     }
   end
 
@@ -114,10 +109,10 @@ module Response : sig
     | Error of string
     | Response of Response.t
     | Update of Update.t
+  [@@deriving sexp]
 
+  val pp : Format.formatter -> t -> unit
   val encoding : t Json_encoding.encoding
-  val to_yojson : t -> Yojson.Safe.t
-  val of_yojson : Yojson.Safe.t -> t
 end
 
 module MD : sig
@@ -139,15 +134,3 @@ module MD : sig
   val message : id:string -> topic:string -> payload:Yojson.Safe.t -> t
   val auth : id:string -> topic:string -> key:string -> secret:string -> t
 end
-
-val connect :
-  ?buf:Bi_outbuf.t ->
-  ?connected:unit Condition.t ->
-  ?to_ws:Yojson.Safe.t Pipe.Reader.t ->
-  ?query_params:(string * string list) list ->
-  ?auth:string * string ->
-  testnet:bool ->
-  md:bool ->
-  topics:string list ->
-  unit -> Yojson.Safe.t Pipe.Reader.t
-

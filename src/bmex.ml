@@ -1,17 +1,69 @@
-open Core
+open Sexplib.Std
 
-let src =
-  Logs.Src.create "bmex.core" ~doc:"BitMEX API - Core"
+let src = Logs.Src.create "bmex" ~doc:"BitMEX API"
+module Log = (val Logs.src_log src : Logs.LOG)
 
 let url = Uri.of_string "https://www.bitmex.com"
 let testnet_url = Uri.of_string "https://testnet.bitmex.com"
 
-module Encoding = struct
+module Ptime = struct
+  include Ptime
+
+  let t_of_sexp sexp =
+    let sexp_str = string_of_sexp sexp in
+    match of_rfc3339 sexp_str with
+    | Ok (t, _, _) -> t
+    | _ -> invalid_arg "Ptime.t_of_sexp"
+
+  let sexp_of_t t =
+    sexp_of_string (to_rfc3339 t)
+
+  let encoding =
+    let open Ptime in
+    let of_rfc3339_exn s = match of_rfc3339 s with
+      | Ok (v, _, _) -> v
+      | Error `RFC3339 (_, e) ->
+        failwith (Format.asprintf "%a" pp_rfc3339_error e) in
+    Json_encoding.(conv to_rfc3339 of_rfc3339_exn string)
+end
+
+module Uuidm = struct
+  include Uuidm
+
+  let t_of_sexp sexp =
+    let sexp_str = string_of_sexp sexp in
+    match of_string sexp_str with
+    | None -> invalid_arg "Uuidm.t_of_sexp"
+    | Some u -> u
+
+  let sexp_of_t t =
+    sexp_of_string (to_string t)
+
+  let encoding =
+    let open Json_encoding in
+    conv
+      (fun u -> to_string u)
+      (fun s -> match of_string s with
+         | None -> invalid_arg "Uuidm.encoding"
+         | Some u -> u)
+      string
+end
+
+module Yojson = struct
+  module Safe = struct
+    include Yojson.Safe
+
+    let t_of_sexp sexp = from_string (string_of_sexp sexp)
+    let sexp_of_t t = sexp_of_string (to_string t)
+  end
+end
+
+module Yojson_encoding = struct
   include Json_encoding.Make(Json_repr.Yojson)
 
   let destruct_safe encoding value =
     try destruct encoding value with exn ->
-      Logs.err ~src begin fun m ->
+      Log.err begin fun m ->
         m "@[<v 0>%a:@,%a@]"
           (Yojson.Safe.pretty_print ~std:false) value
           (Json_encoding.print_error ?print_unknown:None) exn
@@ -20,15 +72,6 @@ module Encoding = struct
 
   let any_to_yojson = Json_repr.(any_to_repr (module Yojson))
   let yojson_to_any = Json_repr.(repr_to_any (module Yojson))
-
-  let time =
-    Json_encoding.(Time_ns.(conv to_string of_string string))
-
-  let uint =
-    Json_encoding.ranged_int ~minimum:0 ~maximum:Int.max_value "uint"
-
-  let uuid =
-    Json_encoding.(conv Uuid.to_string Uuid.of_string string)
 end
 
 type verb = Get | Post | Put | Delete
@@ -73,7 +116,7 @@ end
 
 module Quote = struct
   type t = {
-    timestamp: Time_ns.t ;
+    timestamp: Ptime.t ;
     symbol: string ;
     bidPrice: float option ;
     bidSize: int option ;
@@ -89,51 +132,50 @@ module Quote = struct
       (fun (timestamp, symbol, bidPrice, bidSize, askPrice, askSize) ->
       { timestamp ; symbol ; bidPrice ; bidSize ; askPrice ; askSize })
       (obj6
-         (req "timestamp" Encoding.time)
+         (req "timestamp" Ptime.encoding)
          (req "symbol" string)
          (req "bidPrice" (option float))
          (req "bidSize" (option int))
          (req "askPrice" (option float))
          (req "askSize" (option int)))
 
-  let of_yojson = Encoding.destruct_safe encoding
-  let to_yojson = Encoding.construct encoding
-
-  let merge t t' =
-    if t.symbol <> t'.symbol then invalid_arg "Quote.merge: symbols do not match";
-    let merge_quote = Option.merge ~f:(fun _ q' -> q') in
-    {
-      timestamp = t'.timestamp ;
-      symbol = t'.symbol ;
-      bidPrice = merge_quote t.bidPrice t'.bidPrice ;
-      bidSize = merge_quote t.bidSize t'.bidSize ;
-      askPrice = merge_quote t.askPrice t'.askPrice ;
-      askSize = merge_quote t.askSize t'.askSize ;
-    }
+  (* let merge t t' =
+   *   if t.symbol <> t'.symbol then invalid_arg "Quote.merge: symbols do not match";
+   *   let merge_quote = Option.merge ~f:(fun _ q' -> q') in
+   *   {
+   *     timestamp = t'.timestamp ;
+   *     symbol = t'.symbol ;
+   *     bidPrice = merge_quote t.bidPrice t'.bidPrice ;
+   *     bidSize = merge_quote t.bidSize t'.bidSize ;
+   *     askPrice = merge_quote t.askPrice t'.askPrice ;
+   *     askSize = merge_quote t.askSize t'.askSize ;
+   *   } *)
 end
 
 module Crypto = struct
   type api = Rest | Ws
 
-  let gen_nonce = function
-  | Rest -> Time_ns.(now () |> to_int_ns_since_epoch) / 1_000_000_000 + 30
-  | Ws -> Time_ns.(now () |> to_int_ns_since_epoch) / 1_000
+  let gen_nonce api =
+    let open Ptime in
+    let open Ptime_clock in
+    match api with
+    | Rest -> to_float_s (now ()) +. 30.
+    | Ws -> to_float_s (now ()) *. 1e3
 
   let sign ?(data="") ~secret ~verb ~endp kind =
     let verb_str = string_of_verb verb in
-    let nonce = gen_nonce kind in
-    let nonce_str = Int.to_string nonce in
-    Logs.debug (fun m -> m "sign %s" nonce_str) ;
-    let prehash = verb_str ^ endp ^ nonce_str ^ data |>
-                  Bytes.unsafe_of_string_promise_no_mutation in
-    let secret = Bytes.unsafe_of_string_promise_no_mutation secret in
-    let sign = Digestif.SHA256.(hmac_bytes ~key:secret prehash |> to_hex) in
+    let nonce = int_of_float (gen_nonce kind) in
+    Log.debug (fun m -> m "sign %d" nonce) ;
+    let prehash = verb_str ^ endp ^ string_of_int nonce ^ data in
+    let sign = Digestif.SHA256.(hmac_string ~key:secret prehash |> to_hex) in
     nonce, sign
 
   let mk_query_params ?(data="") ~key ~secret ~api ~verb uri =
     let endp = Uri.path_and_query uri in
     let nonce, signature = sign ~secret ~verb ~endp ~data api in
-    [ (match api with Rest -> "api-expires" | Ws -> "api-nonce"), [Int.to_string nonce];
+    [ (match api with
+          | Rest -> "api-expires"
+          | Ws -> "api-nonce"), [string_of_int nonce] ;
       "api-key", [key];
       "api-signature", [signature];
     ]
@@ -166,7 +208,7 @@ module OrderType = struct
     | "StopLimit" -> `order_type_stop_limit
     | "LimitIfTouched" -> `order_type_limit_if_touched
     | "MarketIfTouched" -> `order_type_market_if_touched
-    | s -> invalid_argf "ord_type_of_string: %s" s ()
+    | _ -> invalid_arg "OrdType.of_string"
 
   let encoding =
     let open Json_encoding in
@@ -225,7 +267,7 @@ module TimeInForce = struct
     | "GoodTillCancel" -> `tif_good_till_canceled
     | "ImmediateOrCancel" -> `tif_immediate_or_cancel
     | "FillOrKill" -> `tif_fill_or_kill
-    | s -> invalid_argf "tif_of_string: %s" s ()
+    | _ -> invalid_arg "TimeInForce.of_string"
 
   let encoding =
     let open Json_encoding in

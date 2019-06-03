@@ -4,25 +4,47 @@
  (modules bmex)
  (preprocess (pps ppx_sexp_conv))
  (libraries
-  hex
-  core
-  async
-  logs
-  uri
-  digestif.c
-  yojson
-  ocplib-json-typed))
+   ptime
+   ptime.clock.os
+   uuidm
+   sexplib
+   hex
+   logs
+   uri
+   digestif.c
+   yojson
+   ocplib-json-typed))
 
 (library
  (name        bmex_rest)
  (public_name bmex-rest)
  (modules bmex_rest)
  (preprocess (pps ppx_sexp_conv))
- (libraries bmex bitmex-types logs-async cohttp-async))
+ (libraries
+   bmex
+   bitmex-types
+   logs-async
+   cohttp-async))
 
 (library
  (name        bmex_ws)
  (public_name bmex-ws)
  (modules bmex_ws)
  (preprocess (pps ppx_sexp_conv))
- (libraries bmex logs-async websocket-async))
+ (libraries
+   bmex
+   ptime
+   sexplib))
+
+(library
+ (name        bmex_ws_async)
+ (public_name bmex-ws-async)
+ (modules bmex_ws_async)
+ (preprocess (pps ppx_sexp_conv))
+ (libraries
+   bmex
+   bmex-ws
+   core
+   async
+   logs-async
+   fastws-async))

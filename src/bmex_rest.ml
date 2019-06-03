@@ -81,7 +81,7 @@ let call
     else if C.Code.is_client_error status_code then begin
       let json = Yojson.Safe.(from_string ?buf body_str) in
       let { Error.name ; message } =
-        Encoding.destruct_safe Error.wrapped_encoding json in
+        Yojson_encoding.destruct_safe Error.wrapped_encoding json in
       failwithf "%s: %s" name message ()
     end
     else if C.Code.is_server_error status_code then begin
@@ -107,11 +107,11 @@ module ApiKey = struct
     [@@deriving sexp]
 
     let dtc_to_any username =
-      Encoding.yojson_to_any
+      Yojson_encoding.yojson_to_any
         (`List [`String "sierra-dtc"; `Assoc ["username", `String username]])
 
     let dtc_of_any any =
-      match Encoding.any_to_yojson any with
+      match Yojson_encoding.any_to_yojson any with
       | `List [`String "sierra-dtc"; `Assoc ["username", `String username]] -> Dtc username
       | #Yojson.Safe.t -> invalid_arg "ApiKey.dtc_of_any"
 
@@ -132,12 +132,12 @@ module ApiKey = struct
       id: string;
       secret: string;
       name: string;
-      nonce: int;
+      nonce: int64;
       cidr: string;
       permissions: Permission.t list;
       enabled: bool;
       userId: int;
-      created: Time_ns.t;
+      created: Ptime.t;
     } [@@deriving sexp]
 
     let compare { id ; _ } { id = id2 ; _ } =
@@ -162,12 +162,12 @@ module ApiKey = struct
          (req "id" string)
          (req "secret" string)
          (req "name" string)
-         (req "nonce" Encoding.uint)
+         (req "nonce" int53)
          (req "cidr" string)
          (req "permissions" (list Permission.encoding))
          (req "enabled" bool)
          (req "userId" int)
-         (req "created" Encoding.time))
+         (req "created" Ptime.encoding))
 
   let dtc ?extract_exn ?buf ?username ~testnet ~key ~secret () =
     let credentials = key, secret in
@@ -176,7 +176,7 @@ module ApiKey = struct
     let query = match username with None -> [] | Some u -> ["get", [u]] in
     call ?extract_exn ?buf ~credentials ~testnet ~query ~verb:Get path >>|
     Or_error.map ~f:begin fun (resp, json) ->
-      resp, Encoding.destruct_safe (Json_encoding.list encoding) json
+      resp, Yojson_encoding.destruct_safe (Json_encoding.list encoding) json
     end
 end
 
@@ -312,7 +312,7 @@ module Order = struct
 
   let submit_bulk ?extract_exn ?buf ~testnet ~key ~secret orders =
     let credentials = key, secret in
-    let orders = List.map orders ~f:(Encoding.construct encoding) in
+    let orders = List.map orders ~f:(Yojson_encoding.construct encoding) in
     let body = `Assoc ["orders", `List orders] in
     call ?extract_exn ?buf ~testnet ~credentials ~body ~verb:Post "/api/v1/order/bulk" >>|
     Or_error.map ~f:begin fun (resp, orders) ->
@@ -320,7 +320,7 @@ module Order = struct
     end
 
   type amend = {
-    orderID : Uuid.t option ;
+    orderID : Uuidm.t option ;
     origClOrdID : string option ;
     clOrdID : string option ;
     orderQty : int option ;
@@ -349,7 +349,7 @@ module Order = struct
         { orderID ; origClOrdID ; clOrdID ; orderQty ; leavesQty ; price ; stopPx ;
           pegOffsetValue ; text })
       (obj9
-         (opt "orderID" Encoding.uuid)
+         (opt "orderID" Uuidm.encoding)
          (opt "origClOrdID" string)
          (opt "clOrdID" string)
          (opt "orderQty" int)
@@ -361,7 +361,7 @@ module Order = struct
 
   let amend_bulk ?extract_exn ?buf ~testnet ~key ~secret orders =
     let credentials = key, secret in
-    let orders = List.map orders ~f:(Encoding.construct amend_encoding) in
+    let orders = List.map orders ~f:(Yojson_encoding.construct amend_encoding) in
     let body = `Assoc ["orders", `List orders] in
     call ?extract_exn ?buf ~testnet ~credentials ~body ~verb:Put "/api/v1/order/bulk" >>|
     Or_error.map ~f:begin fun (resp, orders) ->
@@ -372,7 +372,7 @@ module Order = struct
     let credentials = key, secret in
     let orderIDs = match orderIDs with
       | [] -> None
-      | _ -> Some (String.concat ~sep:"," (List.map orderIDs ~f:Uuid.to_string)) in
+      | _ -> Some (String.concat ~sep:"," (List.map orderIDs ~f:Uuidm.to_string)) in
     let clOrdIDs = match clOrdIDs with
       | [] -> None
       | _ -> Some (String.concat ~sep:"," clOrdIDs) in

@@ -1,10 +1,5 @@
-open Core
-open Async
-
+open Sexplib.Std
 open Bmex
-
-let src =
-  Logs.Src.create "bmex.ws" ~doc:"BitMEX API - Websockets"
 
 module Topic = struct
   type t =
@@ -42,6 +37,7 @@ module Topic = struct
     | TradeBin5m
     | TradeBin1h
     | TradeBin1d
+  [@@deriving sexp]
 
   let of_string = function
     | "privateNotifications" -> PrivateNotifications
@@ -160,7 +156,7 @@ module Request = struct
     type t = {
       topic : Topic.t ;
       symbol : string option ;
-    }
+    } [@@deriving sexp]
 
     let create ?symbol topic = { symbol ; topic }
 
@@ -170,7 +166,7 @@ module Request = struct
       | Some symbol -> Topic.to_string topic ^ ":" ^ symbol
 
     let of_string str =
-      match String.split str ~on:':' with
+      match String.split_on_char ':' str with
       | [topic] -> { topic = Topic.of_string topic ; symbol = None }
       | [topic ; symbol] -> { topic = Topic.of_string topic ; symbol = Some symbol }
       | _ -> invalid_arg "Request.Sub.of_string"
@@ -187,6 +183,7 @@ module Request = struct
         nonce : int ;
         signature : string
       }
+  [@@deriving sexp]
 
   let subscribe subs = Subscribe subs
   let unsubscribe subs = Unsubscribe subs
@@ -247,9 +244,6 @@ module Request = struct
             end
           | _ -> invalid_arg "Request.encoding")
     ]
-
-  let of_yojson = Encoding.destruct_safe encoding
-  let to_yojson = Encoding.construct encoding
 end
 
 module Response = struct
@@ -259,6 +253,7 @@ module Response = struct
       | Update
       | Insert
       | Delete
+    [@@deriving sexp]
 
     let action_of_string = function
       | "partial" -> Partial
@@ -290,16 +285,16 @@ module Response = struct
       table : Topic.t ;
       action : action ;
       data : Yojson.Safe.t list ;
-    }
+    } [@@deriving sexp]
 
     let encoding =
       let open Json_encoding in
       conv
         (fun { table ; action ; data } ->
-           let data = List.map data ~f:Encoding.yojson_to_any in
+           let data = List.map Yojson_encoding.yojson_to_any data in
            (), (table, action, data))
         (fun ((), (table, action, data)) ->
-           let data = List.map data ~f:Encoding.any_to_yojson in
+           let data = List.map Yojson_encoding.any_to_yojson data in
            { table ; action ; data })
         (merge_objs unit
            (obj3
@@ -311,21 +306,18 @@ module Response = struct
   module Welcome = struct
     type t = {
       version : string ;
-      timestamp : Time_ns.t ;
-    }
+      timestamp : Ptime.t ;
+    } [@@deriving sexp]
 
     let encoding =
       let open Json_encoding in
       conv
-        (fun { version ; timestamp } ->
-           (), (version, Time_ns.to_string timestamp))
-        (fun ((), (version, timestamp)) ->
-           let timestamp = Time_ns.of_string timestamp in
-           { version ; timestamp })
+        (fun { version ; timestamp } -> (), (version, timestamp))
+        (fun ((), (version, timestamp)) -> { version ; timestamp })
         (merge_objs unit
            (obj2
               (req "version" string)
-              (req "timestamp" string)))
+              (req "timestamp" Ptime.encoding)))
   end
 
   let error_encoding =
@@ -338,7 +330,7 @@ module Response = struct
       success: bool option ;
       request : Request.t ;
       subscribe : Request.Sub.t option ;
-    }
+    } [@@deriving sexp]
 
     let encoding =
       let open Json_encoding in
@@ -359,6 +351,10 @@ module Response = struct
     | Error of string
     | Response of Response.t
     | Update of Update.t
+  [@@deriving sexp]
+
+  let pp ppf t =
+    Format.fprintf ppf "%a" Sexplib.Sexp.pp (sexp_of_t t)
 
   let encoding =
     let open Json_encoding in
@@ -380,9 +376,6 @@ module Response = struct
         (function Update u -> Some u | _ -> None)
         (fun u -> Update u) ;
     ]
-
-  let of_yojson = Encoding.destruct_safe encoding
-  let to_yojson = Encoding.construct encoding
 end
 
 module MD = struct
@@ -397,16 +390,14 @@ module MD = struct
     | Unsubscribe of stream
 
   let of_yojson = function
-    | (`List (`Int typ :: `String id :: `String topic :: payload) as json) -> begin
+    | `List (`Int typ :: `String id :: `String topic :: payload) -> begin
         match typ, payload with
         | 0, [payload] -> Message { stream = { id ; topic } ; payload }
         | 1, [] -> Subscribe { id ; topic }
         | 2, [] -> Unsubscribe { id ; topic }
-        | _ -> invalid_argf "MD.of_yojson: %s"
-                 (Yojson.Safe.to_string json) ()
+        | _ -> invalid_arg "MD.of_yojson"
       end
-    | #Yojson.Safe.t as json ->
-      invalid_argf "MD.of_yojson: %s" (Yojson.Safe.to_string json) ()
+    | #Yojson.Safe.t -> invalid_arg "MD.of_yojson"
 
   let to_yojson = function
     | Message { stream = { id ; topic } ; payload } ->
@@ -424,104 +415,6 @@ module MD = struct
     let nonce, signature = Crypto.sign ~secret ~verb:Get ~endp:"/realtime" Ws in
     let payload =
       Request.AuthKey { key ; nonce ; signature } |>
-      Encoding.construct Request.encoding in
+      Yojson_encoding.construct Request.encoding in
     message ~id ~topic ~payload
 end
-
-let uri_of_opts testnet md =
-  Uri.with_path
-    (if testnet then testnet_url else url)
-    (if md then "realtimemd" else "realtime")
-
-let connect
-    ?(buf=Bi_outbuf.create 4096)
-    ?connected
-    ?to_ws
-    ?(query_params=[])
-    ?auth
-    ~testnet ~md ~topics () =
-  let uri = uri_of_opts testnet md in
-  let auth_params = match auth with
-    | None -> []
-    | Some (key, secret) -> Crypto.mk_query_params ~key ~secret ~api:Ws ~verb:Get uri
-  in
-  let uri = Uri.add_query_params uri @@
-    if md then [] else
-      ["subscribe", topics] @ auth_params @ query_params
-  in
-  let host = Option.value_exn ~message:"no host in uri" Uri.(host uri) in
-  let port = Option.value_exn ~message:"no port inferred from scheme"
-      Uri_services.(tcp_port_of_uri uri)
-  in
-  let endp = Host_and_port.create ~host ~port in
-  let scheme = Option.value_exn ~message:"no scheme in uri" Uri.(scheme uri) in
-  let ws_w_mvar = Mvar.create () in
-  let ws_w_mvar_ro = Mvar.read_only ws_w_mvar in
-  let rec try_write msg =
-    Mvar.value_available ws_w_mvar_ro >>= fun () ->
-    let w = Mvar.peek_exn ws_w_mvar_ro in
-    if Pipe.is_closed w then begin
-      Mvar.take ws_w_mvar_ro >>= fun _ ->
-      try_write msg
-    end
-    else Pipe.write w msg
-  in
-  Option.iter to_ws ~f:begin fun to_ws ->
-    don't_wait_for @@
-    Monitor.handle_errors begin fun () ->
-      Pipe.iter ~continue_on_error:true to_ws ~f:begin fun msg_json ->
-        let msg_str = Yojson.Safe.to_string msg_json in
-        Logs_async.debug ~src (fun m -> m "-> %s" msg_str) >>= fun () ->
-        try_write msg_str
-      end
-    end (fun exn -> Logs.err ~src (fun m -> m "%a" Exn.pp exn))
-  end ;
-  let client_r, client_w = Pipe.create () in
-  let cleanup r w ws_r ws_w =
-    Logs_async.debug ~src begin fun m ->
-      m "post-disconnection cleanup"
-    end >>= fun () ->
-    Pipe.close ws_w ;
-    Pipe.close_read ws_r ;
-    Deferred.all_unit [Reader.close r ; Writer.close w ] ;
-  in
-  let tcp_fun s r w =
-    Logs_async.info ~src
-      (fun m -> m "connecting to %a" Uri.pp_hum uri) >>= fun () ->
-    Socket.(setopt s Opt.nodelay true);
-    (if scheme = "https" || scheme = "wss" then
-       Conduit_async__.Private_ssl.V2.Ssl.connect r w
-     else return (r, w)) >>= fun (ssl_r, ssl_w) ->
-    let ws_r, ws_w =
-      Websocket_async.client_ez
-        ~heartbeat:(Time_ns.Span.of_int_sec 25) uri ssl_r ssl_w in
-    don't_wait_for begin
-      Deferred.all_unit
-        [ Reader.close_finished r ; Writer.close_finished w ] >>= fun () ->
-      cleanup ssl_r ssl_w ws_r ws_w
-    end ;
-    Mvar.set ws_w_mvar ws_w;
-    Option.iter connected ~f:(fun c -> Condition.broadcast c ());
-    Pipe.transfer ws_r client_w ~f:(Yojson.Safe.from_string ~buf)
-  in
-  let rec loop () = begin
-    Monitor.try_with_or_error
-      ~name:"with_connection"
-      ~extract_exn:false
-      begin fun () ->
-        Tcp.(with_connection (Where_to_connect.of_host_and_port endp) tcp_fun)
-      end >>= function
-    | Ok () ->
-      Logs_async.err ~src begin fun m ->
-        m "connection to %a terminated" Uri.pp_hum uri
-        end
-    | Error err ->
-      Logs_async.err ~src begin fun m ->
-        m "connection to %a raised %a" Uri.pp_hum uri Error.pp err
-      end
-  end >>= fun () ->
-    if Pipe.is_closed client_r then Deferred.unit
-    else Clock_ns.after @@ Time_ns.Span.of_int_sec 10 >>= loop
-  in
-  don't_wait_for @@ loop ();
-  client_r

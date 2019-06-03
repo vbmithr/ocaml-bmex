@@ -11,13 +11,13 @@ module Execution : sig
     testnet:bool ->
     key:string ->
     secret:string ->
-    ?startTime:Core.Time_ns.t ->
-    ?endTime:Core.Time_ns.t ->
-    ?start:Core.Int.t ->
-    ?count:Core.Int.t ->
+    ?startTime:Time_ns.t ->
+    ?endTime:Time_ns.t ->
+    ?start:int ->
+    ?count:int ->
     ?symbol:string ->
     ?filter:Yojson.Safe.t ->
-    ?reverse:Core.Bool.t ->
+    ?reverse:bool ->
     unit ->
     (Cohttp.Response.t * Execution.t list) Deferred.Or_error.t
 
@@ -81,10 +81,10 @@ module Order : sig
     testnet:bool ->
     key:string ->
     secret:string ->
-    ?startTime:Core.Time_ns.t ->
-    ?endTime:Core.Time_ns.t ->
-    ?start:Core.Int.t ->
-    ?count:Core.Int.t ->
+    ?startTime:Time_ns.t ->
+    ?endTime:Time_ns.t ->
+    ?start:int ->
+    ?count:int ->
     ?symbol:string ->
     ?filter:Yojson.Safe.t ->
     ?reverse:Core.Bool.t ->
@@ -101,7 +101,7 @@ module Order : sig
     (Cohttp.Response.t * Order.t list) Deferred.Or_error.t
 
   type amend = {
-    orderID : Uuid.t option ;
+    orderID : Uuidm.t option ;
     origClOrdID : string option ;
     clOrdID : string option ;
     orderQty : int option ;
@@ -121,7 +121,7 @@ module Order : sig
     ?stopPx:float ->
     ?pegOffsetValue:float ->
     ?text:string ->
-    ?orderID:Uuid.t ->
+    ?orderID:Uuidm.t ->
     unit -> amend
 
   val amend_bulk :
@@ -135,7 +135,7 @@ module Order : sig
     ?extract_exn:bool ->
     ?buf:Bi_outbuf.t ->
     testnet:bool -> key:string -> secret:string ->
-    ?orderIDs:Uuid.t list ->
+    ?orderIDs:Uuidm.t list ->
     ?clOrdIDs:string list ->
     ?text:string -> unit ->
     (Cohttp.Response.t * Order.t list) Deferred.Or_error.t
@@ -200,12 +200,12 @@ module ApiKey : sig
     id: string;
     secret: string;
     name: string;
-    nonce: int;
+    nonce: int64;
     cidr: string;
     permissions: Permission.t list;
     enabled: bool;
     userId: int;
-    created: Time_ns.t;
+    created: Ptime.t;
   }
 
   module Set : Set.S with type Elt.t = t

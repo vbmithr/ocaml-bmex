@@ -1,0 +1,10 @@
+(executable
+ (name ws)
+ (modules ws)
+ (public_name bmex-ws-cli)
+ (package bmex-ws-async)
+ (preprocess (pps ppx_jane ppx_sexp_conv))
+ (libraries
+   logs-async-reporter
+   bmex-ws
+   bmex-ws-async))
