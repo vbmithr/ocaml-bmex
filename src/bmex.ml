@@ -130,7 +130,7 @@ module Quote = struct
       (fun { timestamp ; symbol ; bidPrice ; bidSize ; askPrice ; askSize } ->
          (timestamp, symbol, bidPrice, bidSize, askPrice, askSize))
       (fun (timestamp, symbol, bidPrice, bidSize, askPrice, askSize) ->
-      { timestamp ; symbol ; bidPrice ; bidSize ; askPrice ; askSize })
+         { timestamp ; symbol ; bidPrice ; bidSize ; askPrice ; askSize })
       (obj6
          (req "timestamp" Ptime.encoding)
          (req "symbol" string)
@@ -445,4 +445,58 @@ module ExecType = struct
     | "Insurance" -> Insurance
     | "Rebalance" -> Rebalance
     | s -> Unknown s
+end
+
+let side_encoding =
+  let open Json_encoding in
+  string_enum [
+    "Buy", `Buy ;
+    "Sell", `Sell ;
+  ]
+
+let tickDirection_encoding =
+  let open Json_encoding in
+  string_enum [
+    "ZeroMinusTick", `ZeroMinusTick ;
+    "MinusTick", `MinusTick ;
+    "ZeroPlusTick", `ZeroPlusTick ;
+    "PlusTick", `PlusTick ;
+  ]
+
+module Trade = struct
+  type t = {
+    ts: Ptime.t ;
+    symbol: string ;
+    side: [`Buy | `Sell] ;
+    size: int ;
+    price: float ;
+    tickDirection: [`MinusTick | `PlusTick | `ZeroMinusTick | `ZeroPlusTick] ;
+    trdMatchID: Uuidm.t ;
+    grossValue: int64 ;
+    homeNotional: float ;
+    foreignNotional: float ;
+  } [@@deriving sexp]
+
+  let encoding =
+    let open Json_encoding in
+    conv
+      (fun { ts ; symbol ; side ; size ; price ; tickDirection ;
+             trdMatchID ; grossValue ; homeNotional ; foreignNotional } ->
+        (ts, symbol, side, size, price, tickDirection,
+         trdMatchID, grossValue, homeNotional, foreignNotional))
+      (fun (ts, symbol, side, size, price, tickDirection,
+            trdMatchID, grossValue, homeNotional, foreignNotional) ->
+        { ts ; symbol ; side ; size ; price ; tickDirection ;
+          trdMatchID ; grossValue ; homeNotional ; foreignNotional })
+      (obj10
+         (req "timestamp" Ptime.encoding)
+         (req "symbol" string)
+         (req "side" side_encoding)
+         (req "size" int)
+         (req "price" float)
+         (req "tickDirection" tickDirection_encoding)
+         (req "trdMatchID" Uuidm.encoding)
+         (req "grossValue" int53)
+         (req "homeNotional" float)
+         (req "foreignNotional" float))
 end

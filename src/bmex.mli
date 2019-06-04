@@ -224,3 +224,22 @@ module ExecType : sig
   val show : t -> string
   val of_string : string -> t
 end
+
+val side_encoding : [`Buy | `Sell] Json_encoding.encoding
+
+module Trade : sig
+  type t = {
+    ts: Ptime.t ;
+    symbol: string ;
+    side: [`Buy | `Sell] ;
+    size: int ;
+    price: float ;
+    tickDirection: [`MinusTick | `PlusTick | `ZeroMinusTick | `ZeroPlusTick] ;
+    trdMatchID: Uuidm.t ;
+    grossValue: int64 ;
+    homeNotional: float ;
+    foreignNotional: float ;
+  } [@@deriving sexp]
+
+  val encoding : t Json_encoding.encoding
+end

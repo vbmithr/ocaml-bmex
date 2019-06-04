@@ -58,7 +58,7 @@ let process_msgs kw msg =
   match msg with
   | Response.Update { table; action = _ ; data } -> begin
       match table, data with
-      | OrderBookL2, Quote qs ->
+      | OrderBookL2, Quotes qs ->
         Log_async.info (fun m -> m "%a" Response.pp msg) >>= fun () ->
         Pipe.write kw ("upd", Kx.[|construct (list row) (Array.of_list qs)|])
       | _ -> Deferred.unit

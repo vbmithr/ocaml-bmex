@@ -156,12 +156,6 @@ module Quote = struct
     price: float option ;
   } [@@deriving sexp]
 
-  let side_encoding =
-    let open Json_encoding in
-    string_enum [
-      "Buy", `Buy ;
-      "Sell", `Sell ;
-    ]
 
   let encoding =
     let open Json_encoding in
@@ -307,21 +301,23 @@ module Response = struct
       ]
 
     type data =
-      | Quote of Quote.t list
+      | Quotes of Quote.t list
+      | Trades of Trade.t list
       | Unknown of Yojson.Safe.t [@@deriving sexp]
 
-    let yojson_to_repr = Json_repr.any_to_repr (module Json_repr.Yojson)
-    let repr_to_yojson = Json_repr.repr_to_any (module Json_repr.Yojson)
+    (* let yojson_to_repr = Json_repr.any_to_repr (module Json_repr.Yojson)
+     * let repr_to_yojson = Json_repr.repr_to_any (module Json_repr.Yojson) *)
 
-    let yojson_encoding =
-      let open Json_encoding in
-      conv repr_to_yojson yojson_to_repr any_value
+    (* let yojson_encoding =
+     *   let open Json_encoding in
+     *   conv repr_to_yojson yojson_to_repr any_value *)
 
     let data_encoding =
       let open Json_encoding in
       union [
-        case (list Quote.encoding) (function Quote qs -> Some qs | _ -> None ) (fun qs -> Quote qs) ;
-        case yojson_encoding (function Unknown u -> Some u | _ -> None) (fun u -> Unknown u) ;
+        case (list Quote.encoding) (function Quotes qs -> Some qs | _ -> None ) (fun qs -> Quotes qs) ;
+        case (list Trade.encoding) (function Trades ts -> Some ts | _ -> None ) (fun ts -> Trades ts) ;
+        (* case yojson_encoding (function Unknown u -> Some u | _ -> None) (fun u -> Unknown u) ; *)
       ]
 
     type t = {

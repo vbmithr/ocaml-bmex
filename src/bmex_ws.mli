@@ -1,3 +1,5 @@
+open Bmex
+
 module Topic : sig
   type t =
     (* private *)
@@ -101,7 +103,8 @@ module Response : sig
     val pp_action : Format.formatter -> action -> unit
 
     type data =
-      | Quote of Quote.t list
+      | Quotes of Quote.t list
+      | Trades of Trade.t list
       | Unknown of Yojson.Safe.t
     [@@deriving sexp]
 
