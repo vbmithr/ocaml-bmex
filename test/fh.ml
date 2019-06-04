@@ -2,7 +2,6 @@ open Core
 open Async
 
 open Bmex_ws
-open Bmex_ws_async
 
 let src = Logs.Src.create "bmex.fh"  ~doc:"BitMEX API - Toy feedhandler"
 module Log_async = (val Logs_async.src_log src : Logs_async.LOG)
@@ -73,15 +72,16 @@ let main testnet symbol =
   Kx_async.with_connection
     (Uri.make ~scheme:"kdb" ~host:"localhost" ~port:5042 ())
     ~f:begin fun _kr kw ->
-      with_connection ~testnet
+      Bmex_ws_async.with_connection ~testnet
         ~topics:[Request.Sub.create ~symbol Topic.OrderBookL2] begin fun r w ->
         Deferred.all_unit [
           process_user_cmd w ;
           Pipe.iter r ~f:(process_msgs kw)
         ]
       end
-    end >>= fun _ ->
-  Deferred.unit
+    end >>= function
+  | Error e -> Log_async.err (fun m -> m "%a" Kx.pp_connection_error e)
+  | Ok _ -> Deferred.unit
 
 let () =
   Command.async ~summary:"BitMEX toy feed handler" begin
