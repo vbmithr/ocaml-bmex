@@ -87,7 +87,7 @@ module Response : sig
     type t = {
       version : string ;
       timestamp : Ptime.t ;
-    }
+    } [@@deriving sexp]
   end
 
   module Update : sig
