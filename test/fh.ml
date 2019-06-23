@@ -80,7 +80,8 @@ let main testnet symbol =
         ]
       end
     end >>= function
-  | Error e -> Log_async.err (fun m -> m "%s" e)
+  | Error e ->
+    Log_async.err (fun m -> m "%a" Kx_async.pp_print_error e)
   | Ok _ -> Deferred.unit
 
 let () =
