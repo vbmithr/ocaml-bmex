@@ -33,13 +33,13 @@ let connect
                        auth_params @ query_params in
   let url = Uri.add_query_params url query_params in
   Fastws_async.connect_ez url >>= fun (r, w, cleaned_up) ->
-  let client_read = Pipe.map' r ~f:begin fun msgq ->
-      return @@ Queue.map msgq ~f:begin fun msg ->
-        Yojson_encoding.destruct_safe
-          Response.encoding (Yojson.Safe.from_string ~buf msg)
-      end
+  let client_read = Pipe.map r ~f:begin fun msg ->
+      Yojson_encoding.destruct_safe
+        Response.encoding (Yojson.Safe.from_string ~buf msg)
     end in
   let ws_read, client_write = Pipe.create () in
+  don't_wait_for
+    (Pipe.closed client_write >>| fun () -> Pipe.close w) ;
   don't_wait_for @@
   Pipe.transfer ws_read w ~f:begin fun r ->
     let doc = Yojson.Safe.to_string ~buf
@@ -69,10 +69,8 @@ let with_connection
                        auth_params @ query_params in
   let url = Uri.add_query_params url query_params in
   Fastws_async.with_connection_ez url ~f:begin fun r w ->
-    let client_read = Pipe.map' r ~f:begin fun msgq ->
-        return @@ Queue.map msgq ~f:begin fun msg ->
-          Yojson_encoding.destruct_safe Response.encoding (Yojson.Safe.from_string ~buf msg)
-        end
+    let client_read = Pipe.map r ~f:begin fun msg ->
+        Yojson_encoding.destruct_safe Response.encoding (Yojson.Safe.from_string ~buf msg)
       end in
     let ws_read, client_write = Pipe.create () in
     don't_wait_for @@
