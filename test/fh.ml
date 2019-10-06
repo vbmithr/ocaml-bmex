@@ -70,8 +70,8 @@ let process_msgs kw msg =
     Log_async.info (fun m -> m "%a" Response.pp msg)
 
 let main testnet symbol =
-  Kx_async.with_connection_async
-    (Uri.make ~scheme:"kdb" ~host:"localhost" ~port:5042 ()) ~f:begin fun _ kw ->
+  Kx_async.Async.with_connection
+    (Uri.make ~scheme:"kdb" ~host:"localhost" ~port:5042 ()) ~f:begin fun { w = kw; _ } ->
     Bmex_ws_async.with_connection ~testnet
       ~topics:[Request.Sub.create ~symbol Topic.OrderBookL2] begin fun r w ->
       Deferred.all_unit [
@@ -80,8 +80,7 @@ let main testnet symbol =
       ]
     end
   end >>= function
-  | Error e ->
-    Log_async.err (fun m -> m "%a" Kx_async.pp_print_error e)
+  | Error e -> Log_async.err (fun m -> m "%a" Error.pp e)
   | Ok _ -> Deferred.unit
 
 let () =
