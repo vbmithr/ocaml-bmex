@@ -87,7 +87,7 @@ let () =
   Command.async ~summary:"BitMEX toy feed handler" begin
     let open Command.Let_syntax in
     [%map_open
-      let () = Logs_async_reporter.set_level_via_param None
+      let () = Logs_async_reporter.set_level_via_param []
       and testnet = flag "testnet" no_arg ~doc:" Use testnet"
       and sym = anon ("symbol" %: string) in
       fun () ->
