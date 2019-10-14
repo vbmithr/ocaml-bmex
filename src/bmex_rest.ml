@@ -237,7 +237,7 @@ module Order = struct
 
   let create ?displayQty ?price ?stopPx ?clOrdID ?contingencyType
       ?pegOffsetValue ?pegPriceType
-      ?(timeInForce=`tif_unset) ?(execInst=[])
+      ?(timeInForce=Fixtypes.TimeInForce.GoodTillCancel) ?(execInst=[])
       ?text ~symbol ~orderQty ~ordType () =
     { symbol ; orderQty ; displayQty ; price ; stopPx ; clOrdID ; contingencyType ;
       pegOffsetValue ; pegPriceType ; ordType ; timeInForce ; execInst ; text }
@@ -288,7 +288,7 @@ module Order = struct
             (opt "pegPriceType" PegPriceType.encoding)
             (req "ordType" OrderType.encoding))
          (obj4
-            (dft "timeInForce" TimeInForce.encoding `tif_unset)
+            (dft "timeInForce" TimeInForce.encoding Fixtypes.TimeInForce.GoodTillCancel)
             (opt "execInst" string)
             (opt "contingencyType" ContingencyType.encoding)
             (opt "text" string)))

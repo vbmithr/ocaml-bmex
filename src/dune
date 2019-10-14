@@ -4,6 +4,7 @@
  (modules bmex)
  (preprocess (pps ppx_sexp_conv))
  (libraries
+   fixtypes
    ptime
    ptime.clock.os
    uuidm

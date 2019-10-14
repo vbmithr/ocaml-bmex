@@ -243,39 +243,22 @@ module OrderType = struct
 end
 
 module TimeInForce = struct
-  type t = [
-    | `tif_unset
-    | `tif_day
-    | `tif_good_till_canceled
-    | `tif_all_or_none
-    | `tif_immediate_or_cancel
-    | `tif_fill_or_kill
-    | `tif_good_till_date_time
-  ]
-
-  let to_string = function
-    | `tif_unset
-    | `tif_good_till_date_time
-    | `tif_day -> "Day"
-    | `tif_good_till_canceled
-    | `tif_all_or_none -> "GoodTillCancel"
-    | `tif_immediate_or_cancel -> "ImmediateOrCancel"
-    | `tif_fill_or_kill -> "FillOrKill"
+  type t = Fixtypes.TimeInForce.t [@@deriving sexp]
 
   let of_string = function
-    | "Day" -> `tif_day
-    | "GoodTillCancel" -> `tif_good_till_canceled
-    | "ImmediateOrCancel" -> `tif_immediate_or_cancel
-    | "FillOrKill" -> `tif_fill_or_kill
+    | "Day" -> Fixtypes.TimeInForce.Session
+    | "GoodTillCancel" -> GoodTillCancel
+    | "ImmediateOrCancel" -> ImmediateOrCancel
+    | "FillOrKill" -> FillOrKill
     | _ -> invalid_arg "TimeInForce.of_string"
 
   let encoding =
     let open Json_encoding in
     string_enum [
-      "Day", `tif_day ;
-      "GoodTillCancel", `tif_good_till_canceled ;
-      "ImmediateOrCancel", `tif_immediate_or_cancel ;
-      "FillOrKill", `tif_fill_or_kill ;
+      "Day", Fixtypes.TimeInForce.Session ;
+      "GoodTillCancel", GoodTillCancel ;
+      "ImmediateOrCancel", ImmediateOrCancel ;
+      "FillOrKill", FillOrKill ;
     ]
 end
 
@@ -328,16 +311,12 @@ module ExecInst = struct
 end
 
 module ContingencyType = struct
-  type t =
-    | OCO (* OneCancelsTheOther *)
-    | OTO (* OneTriggersTheOther *)
-    | OUOA (* OneUpdatesTheOtherAbsolute *)
-    | OUOP (* OneUpdatesTheOtherProportional *)
+  type t = Fixtypes.ContingencyType.t
 
   let encoding =
     let open Json_encoding in
     string_enum [
-      "OneCancelsTheOther", OCO ;
+      "OneCancelsTheOther", Fixtypes.ContingencyType.OCO ;
       "OneTriggersTheOther", OTO ;
       "OneUpdatesTheOtherAbsolute", OUOA ;
       "OneUpdatesTheOtherProportional", OUOP ;
@@ -345,17 +324,12 @@ module ContingencyType = struct
 end
 
 module PegPriceType = struct
-  type t =
-    | LastPeg
-    | MidPricePeg
-    | MarketPeg
-    | PrimaryPeg
-    | TrailingStopPeg
+  type t = Fixtypes.PegPriceType.t
 
   let encoding =
     let open Json_encoding in
     string_enum [
-      "LastPeg", LastPeg ;
+      "LastPeg", Fixtypes.PegPriceType.LastPeg ;
       "MidPricePeg", MidPricePeg ;
       "PrimaryPeg", PrimaryPeg ;
       "TrailingStopPeg", TrailingStopPeg ;
@@ -363,28 +337,12 @@ module PegPriceType = struct
 end
 
 module OrdStatus = struct
-  type t =
-    | New
-    | PartiallyFilled
-    | Filled
-    | DoneForDay
-    | Canceled
-    | PendingCancel
-    | Stopped
-    | Rejected
-    | Suspended
-    | PendingNew
-    | Calculated
-    | Expired
-    | AcceptedForBidding
-    | PendingReplace
-    | Unknown of string
-  [@@deriving sexp]
+  type t = Fixtypes.OrdStatus.t [@@deriving sexp]
 
   let show t = Sexplib.Sexp.to_string (sexp_of_t t)
 
   let of_string = function
-    | "New" -> New
+    | "New" -> Fixtypes.OrdStatus.New
     | "PartiallyFilled" -> PartiallyFilled
     | "Filled" -> Filled
     | "DoneForDay" -> DoneForDay
@@ -398,10 +356,10 @@ module OrdStatus = struct
     | "Expired" -> Expired
     | "AcceptedForBidding" -> AcceptedForBidding
     | "PendingReplace" -> PendingReplace
-    | s -> Unknown s
+    | s -> failwith ("OrdStatus.of_string: " ^ s)
 
   let to_dtc = function
-    | New -> `order_status_open
+    | Fixtypes.OrdStatus.New -> `order_status_open
     | PartiallyFilled -> `order_status_partially_filled
     | Filled -> `order_status_filled
     | Canceled -> `order_status_canceled
@@ -450,27 +408,27 @@ end
 let side_encoding =
   let open Json_encoding in
   string_enum [
-    "Buy", `Buy ;
-    "Sell", `Sell ;
+    "Buy", Fixtypes.Side.Buy ;
+    "Sell", Sell ;
   ]
 
 let tickDirection_encoding =
   let open Json_encoding in
   string_enum [
-    "ZeroMinusTick", `ZeroMinusTick ;
-    "MinusTick", `MinusTick ;
-    "ZeroPlusTick", `ZeroPlusTick ;
-    "PlusTick", `PlusTick ;
+    "ZeroMinusTick", Fixtypes.TickDirection.ZeroMinusTick ;
+    "MinusTick", MinusTick ;
+    "ZeroPlusTick", ZeroPlusTick ;
+    "PlusTick", PlusTick ;
   ]
 
 module Trade = struct
   type t = {
     ts: Ptime.t ;
     symbol: string ;
-    side: [`Buy | `Sell] ;
+    side: Fixtypes.Side.t ;
     size: int ;
     price: float ;
-    tickDirection: [`MinusTick | `PlusTick | `ZeroMinusTick | `ZeroPlusTick] ;
+    tickDirection: Fixtypes.TickDirection.t ;
     trdMatchID: Uuidm.t ;
     grossValue: int64 ;
     homeNotional: float ;

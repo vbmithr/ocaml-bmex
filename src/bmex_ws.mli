@@ -46,7 +46,7 @@ module Quote : sig
   type t = {
     symbol: string ;
     id: int64 ;
-    side: [`Buy | `Sell] ;
+    side: Fixtypes.Side.t ;
     size: int option ;
     price: float option ;
   } [@@deriving sexp]

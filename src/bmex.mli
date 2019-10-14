@@ -114,17 +114,8 @@ module OrderType : sig
 end
 
 module TimeInForce : sig
-  type t = [
-    | `tif_unset
-    | `tif_day
-    | `tif_good_till_canceled
-    | `tif_all_or_none
-    | `tif_immediate_or_cancel
-    | `tif_fill_or_kill
-    | `tif_good_till_date_time
-  ]
+  type t = Fixtypes.TimeInForce.t [@@deriving sexp]
 
-  val to_string : t -> string
   val of_string : string -> t
   val encoding : t Json_encoding.encoding
 end
@@ -147,44 +138,17 @@ module ExecInst : sig
 end
 
 module ContingencyType : sig
-  type t =
-    | OCO (* OneCancelsTheOther *)
-    | OTO (* OneTriggersTheOther *)
-    | OUOA (* OneUpdatesTheOtherAbsolute *)
-    | OUOP (* OneUpdatesTheOtherProportional *)
-
+  type t = Fixtypes.ContingencyType.t
   val encoding : t Json_encoding.encoding
 end
 
 module PegPriceType : sig
-  type t =
-    | LastPeg
-    | MidPricePeg
-    | MarketPeg
-    | PrimaryPeg
-    | TrailingStopPeg
-
+  type t = Fixtypes.PegPriceType.t
   val encoding : t Json_encoding.encoding
 end
 
 module OrdStatus : sig
-  type t =
-    | New
-    | PartiallyFilled
-    | Filled
-    | DoneForDay
-    | Canceled
-    | PendingCancel
-    | Stopped
-    | Rejected
-    | Suspended
-    | PendingNew
-    | Calculated
-    | Expired
-    | AcceptedForBidding
-    | PendingReplace
-    | Unknown of string
-  [@@deriving sexp]
+  type t = Fixtypes.OrdStatus.t [@@deriving sexp]
 
   val show : t -> string
   val of_string : string -> t
@@ -200,7 +164,6 @@ module OrdStatus : sig
     | `order_status_pending_open
     | `order_status_rejected
     | `order_status_unspecified ]
-
 end
 
 module ExecType : sig
@@ -225,16 +188,16 @@ module ExecType : sig
   val of_string : string -> t
 end
 
-val side_encoding : [`Buy | `Sell] Json_encoding.encoding
+val side_encoding : Fixtypes.Side.t Json_encoding.encoding
 
 module Trade : sig
   type t = {
     ts: Ptime.t ;
     symbol: string ;
-    side: [`Buy | `Sell] ;
+    side: Fixtypes.Side.t ;
     size: int ;
     price: float ;
-    tickDirection: [`MinusTick | `PlusTick | `ZeroMinusTick | `ZeroPlusTick] ;
+    tickDirection: Fixtypes.TickDirection.t ;
     trdMatchID: Uuidm.t ;
     grossValue: int64 ;
     homeNotional: float ;

@@ -27,8 +27,8 @@ let process_user_cmd w =
 let side_encoding =
   let open Kx in
   conv
-    (function `Buy -> "bid" | `Sell -> "ask")
-    (function "bid" -> `Buy | _ -> `Sell)
+    (function Fixtypes.Side.Buy -> "bid" | Sell -> "ask")
+    (function "bid" -> Buy | _ -> Sell)
     (a sym)
 
 let longopt =
