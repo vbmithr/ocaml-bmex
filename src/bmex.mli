@@ -89,28 +89,10 @@ module Crypto : sig
 end
 
 module OrderType : sig
-  type t = [
-    | `order_type_unset
-    | `order_type_market
-    | `order_type_limit
-    | `order_type_stop
-    | `order_type_stop_limit
-    | `order_type_limit_if_touched
-    | `order_type_market_if_touched
-  ]
+  type t = Fixtypes.OrdType.t [@@deriving sexp]
 
-  val to_string : t -> string
   val of_string : string -> t
   val encoding : t Json_encoding.encoding
-
-  val to_p1_p2 :
-    stopPx:float ->
-    price:float ->
-    t ->
-    float option * float option
-
-  val to_price_stopPx :
-    ?p1:float -> ?p2:float -> t -> float option * float option
 end
 
 module TimeInForce : sig

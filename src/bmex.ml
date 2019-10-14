@@ -182,64 +182,27 @@ module Crypto = struct
 end
 
 module OrderType = struct
-  type t = [
-    | `order_type_unset
-    | `order_type_market
-    | `order_type_limit
-    | `order_type_stop
-    | `order_type_stop_limit
-    | `order_type_limit_if_touched
-    | `order_type_market_if_touched
-  ]
-
-  let to_string = function
-    | `order_type_market -> "Market"
-    | `order_type_limit -> "Limit"
-    | `order_type_stop -> "Stop"
-    | `order_type_stop_limit -> "StopLimit"
-    | `order_type_limit_if_touched -> "LimitIfTouched"
-    | `order_type_market_if_touched -> "MarketIfTouched"
-    | `order_type_unset -> ""
+  type t = Fixtypes.OrdType.t [@@deriving sexp]
 
   let of_string = function
-    | "Market" -> `order_type_market
-    | "Limit" -> `order_type_limit
-    | "Stop" -> `order_type_stop
-    | "StopLimit" -> `order_type_stop_limit
-    | "LimitIfTouched" -> `order_type_limit_if_touched
-    | "MarketIfTouched" -> `order_type_market_if_touched
+    | "Market" -> Fixtypes.OrdType.Market
+    | "Limit" -> Limit
+    | "Stop" -> Stop
+    | "StopLimit" -> StopLimit
+    | "LimitIfTouched" -> LimitIfTouched
+    | "MarketIfTouched" -> MarketIfTouched
     | _ -> invalid_arg "OrdType.of_string"
 
   let encoding =
     let open Json_encoding in
     string_enum [
-      "Market", `order_type_market ;
-      "Limit", `order_type_limit ;
-      "Stop", `order_type_stop ;
-      "StopLimit", `order_type_stop_limit ;
-      "LimitIfTouched", `order_type_limit_if_touched ;
-      "MarketIfTouched", `order_type_market_if_touched ;
+      "Market", Fixtypes.OrdType.Market ;
+      "Limit", Limit ;
+      "Stop", Stop ;
+      "StopLimit", StopLimit ;
+      "MarketIfTouched", MarketIfTouched ;
+      "LimitIfTouched", LimitIfTouched ;
     ]
-
-  let to_p1_p2 ~stopPx ~price = function
-    | `order_type_unset
-    | `order_type_market -> None, None
-    | `order_type_limit -> Some price, None
-    | `order_type_stop -> Some stopPx, None
-    | `order_type_stop_limit -> Some stopPx, Some price
-    | `order_type_limit_if_touched -> Some stopPx, Some price
-    | `order_type_market_if_touched -> Some stopPx, None
-
-  let to_price_stopPx ?p1 ?p2 ordType =
-    match ordType, p1, p2 with
-    | `order_type_unset, _, _
-    | `order_type_market, _, _ -> None, None
-    | `order_type_limit, Some p, _ -> Some p, None
-    | `order_type_stop, Some p, _
-    | `order_type_market_if_touched, Some p, _ -> None, Some p
-    | `order_type_stop_limit, Some stopPx, Some limitPx -> Some limitPx, Some stopPx
-    | `order_type_limit_if_touched, Some stopPx, Some limitPx -> Some limitPx, Some stopPx
-    | _ -> invalid_arg "price_fields_of_dtc"
 end
 
 module TimeInForce = struct
