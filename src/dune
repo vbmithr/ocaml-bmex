@@ -22,10 +22,10 @@
  (modules bmex_rest)
  (preprocess (pps ppx_sexp_conv))
  (libraries
+   fastrest
    bmex
    bitmex-types
-   logs-async
-   cohttp-async))
+   logs-async))
 
 (library
  (name        bmex_ws)
