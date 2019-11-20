@@ -61,7 +61,7 @@ let process_msgs kw msg =
       | OrderBookL2, Quotes qs ->
         Log_async.info (fun m -> m "%a" Response.pp msg) >>= fun () ->
         let open Kx in
-        Pipe.write kw (Kx_async.create (t2 (a sym) (list row))  ("upd", qs))
+        Pipe.write kw (Kx_async.create (t2 (a sym) (list row))  ("upd", Array.of_list qs))
       | _ -> Deferred.unit
     end
   | Error _ ->

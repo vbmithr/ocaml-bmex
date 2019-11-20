@@ -4,219 +4,154 @@ open Async
 open Bmex
 open Bitmex_types
 
-module Execution : sig
-  val trade_history :
-    ?extract_exn:bool ->
-    ?buf:Bi_outbuf.t ->
-    testnet:bool ->
-    key:string ->
-    secret:string ->
-    ?startTime:Time_ns.t ->
-    ?endTime:Time_ns.t ->
-    ?start:int ->
-    ?count:int ->
-    ?symbol:string ->
-    ?filter:Yojson.Safe.t ->
-    ?reverse:bool ->
-    unit ->
-    (Cohttp.Response.t * Execution.t list) Deferred.Or_error.t
+val activeInstruments :
+  ?buf:Bi_outbuf.t -> ?testnet:bool -> unit -> Instrument.t list Deferred.t
 
-  val all_trade_history :
-    ?extract_exn:bool ->
-    ?buf:Bi_outbuf.t ->
-    testnet:bool ->
-    key:string ->
-    secret:string ->
-    ?symbol:string ->
-    ?filter:Yojson.Safe.t ->
-    unit ->
-    (Cohttp.Response.t * Execution.t list) Deferred.Or_error.t
-end
+val trades :
+  ?buf:Bi_outbuf.t ->
+  ?testnet:bool ->
+  ?filter:Yojson.Safe.t ->
+  ?columns:string list ->
+  ?count:int ->
+  ?start:int ->
+  ?reverse:bool ->
+  ?startTime:Time_ns.t ->
+  ?endTime:Time_ns.t ->
+  string ->
+  Trade.t list Deferred.t
 
-module Instrument : sig
-  val active_and_indices :
-    ?extract_exn:bool ->
-    ?buf:Bi_outbuf.t ->
-    testnet:bool ->
-    unit ->
-    (Cohttp.Response.t * Instrument.t list) Deferred.Or_error.t
-end
+val tradeHistory :
+  ?buf:Bi_outbuf.t ->
+  ?testnet:bool ->
+  ?startTime:Time_ns.t ->
+  ?endTime:Time_ns.t ->
+  ?start:int ->
+  ?count:int ->
+  ?symbol:string ->
+  ?filter:Yojson.Safe.t ->
+  ?reverse:bool ->
+  key:string ->
+  secret:string ->
+  unit ->
+  Execution.t list Deferred.t
 
-module Order : sig
-  type t = {
-    symbol : string ;
-    orderQty : int ;
-    displayQty : int option ;
-    price : float option ;
-    stopPx : float option ;
-    clOrdID : string option ;
-    contingencyType : (ContingencyType.t * string) option ;
-    pegOffsetValue : float option ;
-    pegPriceType : PegPriceType.t option ;
-    ordType : OrderType.t ;
-    timeInForce : TimeInForce.t ;
-    execInst : ExecInst.t list ;
-    text : string option ;
-  }
+val positions :
+  ?buf:Bi_outbuf.t ->
+  ?testnet:bool ->
+  ?filter:Yojson.Safe.t ->
+  ?columns:string list ->
+  ?count:Core.Int.t ->
+  key:string ->
+  secret:string ->
+  unit ->
+  Position.t list Deferred.t
 
-  val create :
-    ?displayQty:int ->
-    ?price:float ->
-    ?stopPx:float ->
-    ?clOrdID:string ->
-    ?contingencyType:(ContingencyType.t * string) ->
-    ?pegOffsetValue:float ->
-    ?pegPriceType:PegPriceType.t ->
-    ?timeInForce:TimeInForce.t ->
-    ?execInst:ExecInst.t list ->
-    ?text:string ->
-    symbol:string ->
-    orderQty:int ->
-    ordType:OrderType.t ->
-    unit -> t
+val openOrders :
+  ?buf:Bi_outbuf.t ->
+  ?testnet:bool ->
+  ?startTime:Time_ns.t ->
+  ?endTime:Time_ns.t ->
+  ?start:int ->
+  ?count:int ->
+  ?symbol:string ->
+  ?filter:Yojson.Safe.t ->
+  ?reverse:Core.Bool.t ->
+  key:string ->
+  secret:string ->
+  unit ->
+  Order.t list Deferred.t
 
-  val get_open_orders :
-    ?extract_exn:bool ->
-    ?buf:Bi_outbuf.t ->
-    testnet:bool ->
-    key:string ->
-    secret:string ->
-    ?startTime:Time_ns.t ->
-    ?endTime:Time_ns.t ->
-    ?start:int ->
-    ?count:int ->
-    ?symbol:string ->
-    ?filter:Yojson.Safe.t ->
-    ?reverse:Core.Bool.t ->
-    unit ->
-    (Cohttp.Response.t * Order.t list) Deferred.Or_error.t
+type order = {
+  symbol : string ;
+  orderQty : int ;
+  displayQty : int option ;
+  price : float option ;
+  stopPx : float option ;
+  clOrdID : Uuidm.t ;
+  contingencyType : (ContingencyType.t * string) option ;
+  pegOffsetValue : float option ;
+  pegPriceType : PegPriceType.t option ;
+  ordType : OrderType.t ;
+  timeInForce : TimeInForce.t ;
+  execInst : ExecInst.t list ;
+  text : string option ;
+}
+(* OrderQty determines buy or sell. *)
 
-  val submit_bulk :
-    ?extract_exn:bool ->
-    ?buf:Bi_outbuf.t ->
-    testnet:bool ->
-    key:string ->
-    secret:string ->
-    t list ->
-    (Cohttp.Response.t * Order.t list) Deferred.Or_error.t
+val createOrder :
+  ?displayQty:int ->
+  ?price:float ->
+  ?stopPx:float ->
+  ?contingencyType:(ContingencyType.t * string) ->
+  ?pegOffsetValue:float ->
+  ?pegPriceType:PegPriceType.t ->
+  ?timeInForce:TimeInForce.t ->
+  ?execInst:ExecInst.t list ->
+  ?text:string ->
+  symbol:string ->
+  orderQty:int ->
+  ordType:OrderType.t ->
+  Uuidm.t -> order
 
-  type amend = {
-    orderID : Uuidm.t option ;
-    origClOrdID : string option ;
-    clOrdID : string option ;
-    orderQty : int option ;
-    leavesQty : int option ;
-    price : float option ;
-    stopPx : float option ;
-    pegOffsetValue : float option ;
-    text : string option ;
-  }
+val submit :
+  ?buf:Bi_outbuf.t ->
+  ?testnet:bool ->
+  key:string ->
+  secret:string ->
+  order list ->
+  Order.t list Deferred.Or_error.t
 
-  val create_amend :
-    ?origClOrdID:string ->
-    ?clOrdID:string ->
-    ?orderQty:int ->
-    ?leavesQty:int ->
-    ?price:float ->
-    ?stopPx:float ->
-    ?pegOffsetValue:float ->
-    ?text:string ->
-    ?orderID:Uuidm.t ->
-    unit -> amend
+type amend = {
+  orderID : Uuidm.t option ;
+  origClOrdID : Uuidm.t option ;
+  clOrdID : Uuidm.t option ;
+  orderQty : int option ;
+  leavesQty : int option ;
+  price : float option ;
+  stopPx : float option ;
+  pegOffsetValue : float option ;
+  text : string option ;
+}
 
-  val amend_bulk :
-    ?extract_exn:bool ->
-    ?buf:Bi_outbuf.t ->
-    testnet:bool -> key:string -> secret:string ->
-    amend list ->
-    (Cohttp.Response.t * Order.t list) Deferred.Or_error.t
+val createAmend :
+  ?origClOrdID:Uuidm.t ->
+  ?clOrdID:Uuidm.t ->
+  ?orderQty:int ->
+  ?leavesQty:int ->
+  ?price:float ->
+  ?stopPx:float ->
+  ?pegOffsetValue:float ->
+  ?text:string ->
+  ?orderID:Uuidm.t ->
+  unit -> amend
 
-  val cancel :
-    ?extract_exn:bool ->
-    ?buf:Bi_outbuf.t ->
-    testnet:bool -> key:string -> secret:string ->
-    ?orderIDs:Uuidm.t list ->
-    ?clOrdIDs:string list ->
-    ?text:string -> unit ->
-    (Cohttp.Response.t * Order.t list) Deferred.Or_error.t
+val amend :
+  ?buf:Bi_outbuf.t ->
+  ?testnet:bool -> key:string -> secret:string ->
+  amend list ->
+  Order.t list Deferred.Or_error.t
 
-  val cancel_all :
-    ?extract_exn:bool ->
-    ?buf:Bi_outbuf.t ->
-    testnet:bool -> key:string -> secret:string ->
-    ?symbol:string ->
-    ?filter:Yojson.Safe.t ->
-    ?text:string ->
-    unit ->
-    Cohttp.Response.t Deferred.Or_error.t
+val cancel :
+  ?buf:Bi_outbuf.t ->
+  ?testnet:bool ->
+  ?orderIDs:Uuidm.t list ->
+  ?clOrdIDs:Uuidm.t list ->
+  ?text:string ->
+  key:string -> secret:string -> unit ->
+  Order.t list Deferred.Or_error.t
 
-  val cancel_all_after :
-    ?extract_exn:bool ->
-    ?buf:Bi_outbuf.t ->
-    testnet:bool -> key:string -> secret:string ->
-    Time_ns.Span.t ->
-    Cohttp.Response.t Deferred.Or_error.t
-end
+val cancelAll :
+  ?buf:Bi_outbuf.t ->
+  ?testnet:bool ->
+  ?symbol:string ->
+  ?filter:Yojson.Safe.t ->
+  ?text:string ->
+  key:string -> secret:string ->
+  unit ->
+  Order.t list Deferred.Or_error.t
 
-module Position : sig
-  val get :
-    ?extract_exn:bool ->
-    ?buf:Bi_outbuf.t ->
-    testnet:bool ->
-    key:string ->
-    secret:string ->
-    ?filter:Yojson.Safe.t ->
-    ?columns:string list ->
-    ?count:Core.Int.t ->
-    unit ->
-    (Cohttp.Response.t * Position.t list) Deferred.Or_error.t
-end
-
-module Trade : sig
-  val get :
-    ?extract_exn:bool ->
-    ?buf:Bi_outbuf.t ->
-    testnet:bool ->
-    ?filter:Yojson.Safe.t ->
-    ?columns:string list ->
-    ?count:int ->
-    ?start:int ->
-    ?reverse:bool ->
-    ?startTime:Time_ns.t ->
-    ?endTime:Time_ns.t ->
-    ?symbol:string ->
-    unit ->
-    (Cohttp.Response.t * Trade.t list) Deferred.Or_error.t
-end
-
-module ApiKey : sig
-  module Permission : sig
-    type t =
-      | Perm of string
-      | Dtc of string
-  end
-
-  type t = {
-    id: string;
-    secret: string;
-    name: string;
-    nonce: int64;
-    cidr: string;
-    permissions: Permission.t list;
-    enabled: bool;
-    userId: int;
-    created: Ptime.t;
-  }
-
-  module Set : Set.S with type Elt.t = t
-
-  val dtc :
-    ?extract_exn:bool ->
-    ?buf:Bi_outbuf.t ->
-    ?username:string ->
-    testnet:bool ->
-    key:string ->
-    secret:string ->
-    unit ->
-    (Cohttp.Response.t * t list) Deferred.Or_error.t
-end
+val cancelAllAfter :
+  ?buf:Bi_outbuf.t ->
+  testnet:bool -> key:string -> secret:string ->
+  Time_ns.Span.t ->
+  unit Deferred.Or_error.t

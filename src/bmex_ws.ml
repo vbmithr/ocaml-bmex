@@ -197,9 +197,9 @@ module Request = struct
     | Subscribe of Sub.t list
     | Unsubscribe of Sub.t list
     | CancelAllAfter of int
-    | AuthKey of {
+    | AuthKeyExpires of {
         key : string ;
-        nonce : int ;
+        expiresIn : string ;
         signature : string
       }
   [@@deriving sexp]
@@ -207,24 +207,20 @@ module Request = struct
   let subscribe subs = Subscribe subs
   let unsubscribe subs = Unsubscribe subs
   let cancel_all_after timeout = CancelAllAfter timeout
-  let authkey ~key ~nonce ~signature = AuthKey { key ; nonce ; signature }
+  let authkey ~key ~expiresIn ~signature =
+    AuthKeyExpires { key ; expiresIn ; signature }
 
   let encoding =
     let open Json_encoding in
     union [
-      case
-        (obj2
-           (req "op" string)
-           (req "args" Sub.encoding))
+      case (obj2 (req "op" string) (req "args" Sub.encoding))
         (fun _ -> None)
         (function
           | ("subscribe", arg) -> Subscribe [arg]
           | ("unsubscribe", arg) -> Unsubscribe [arg]
           | _ -> invalid_arg "Request.encoding") ;
       case
-        (obj2
-           (req "op" string)
-           (req "args" (list Sub.encoding)))
+        (obj2 (req "op" string) (req "args" (list Sub.encoding)))
         (function
           | Subscribe args -> Some ("subscribe", args)
           | Unsubscribe args -> Some ("unsubscribe", args)
@@ -233,32 +229,26 @@ module Request = struct
           | ("subscribe", args) -> Subscribe args
           | ("unsubscribe", args) -> Unsubscribe args
           | _ -> invalid_arg "Request.encoding") ;
-      case
-        (obj2
-           (req "op" string)
-           (req "args" int))
+      case (obj2 (req "op" string) (req "args" int))
         (function
           | CancelAllAfter timeout -> Some ("cancelAllAfter", timeout)
           | _ -> None)
         (function
           | ("cancelAllAfter", timeout) -> CancelAllAfter timeout
           | _ -> invalid_arg "Request.encoding") ;
-      case
-        (obj2
-           (req "op" string)
-           (req "args" any_value))
+      case (obj2 (req "op" string) (req "args" any_value))
         (function
-          | AuthKey { key ; nonce ; signature } ->
+          | AuthKeyExpires { key ; expiresIn ; signature } ->
             let payload =
               Json_repr.(repr_to_any (module Yojson)
-                           (`List [`String key ; `Int nonce ; `String signature])) in
-            Some ("authKey", payload)
+                           (`List [`String key ; `String expiresIn ; `String signature])) in
+            Some ("authKeyExpires", payload)
           | _ -> None)
         (function
-          | ("authKey", payload) -> begin
+          | ("authKeyExpires", payload) -> begin
               match Json_repr.(any_to_repr (module Yojson) payload) with
-              | `List [`String key ; `Int nonce ; `String signature] ->
-                AuthKey { key ; nonce ; signature }
+              | `List [`String key ; `String expiresIn ; `String signature] ->
+                AuthKeyExpires { key ; expiresIn ; signature }
               | _ -> invalid_arg "Request.encoding"
             end
           | _ -> invalid_arg "Request.encoding")
@@ -447,9 +437,9 @@ module MD = struct
   let message ~id ~topic ~payload = Message { stream = { id ; topic } ; payload }
 
   let auth ~id ~topic ~key ~secret =
-    let nonce, signature = Crypto.sign ~secret ~verb:Get ~endp:"/realtime" Ws in
+    let expiresIn, signature = Crypto.sign ~secret ~verb:Get "/realtime" in
     let payload =
-      Request.AuthKey { key ; nonce ; signature } |>
+      Request.AuthKeyExpires { key ; expiresIn ; signature } |>
       Yojson_encoding.construct Request.encoding in
     message ~id ~topic ~payload
 end

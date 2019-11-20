@@ -153,29 +153,20 @@ module Quote = struct
 end
 
 module Crypto = struct
-  type api = Rest | Ws
+  let expire sec =
+    Float.to_int (Ptime.to_float_s (Ptime_clock.now ())) + sec
 
-  let gen_nonce api =
-    let open Ptime in
-    let open Ptime_clock in
-    match api with
-    | Rest -> to_float_s (now ()) +. 30.
-    | Ws -> to_float_s (now ()) *. 1e3
-
-  let sign ?(data="") ~secret ~verb ~endp kind =
-    let verb_str = string_of_verb verb in
-    let nonce = int_of_float (gen_nonce kind) in
-    Log.debug (fun m -> m "sign %d" nonce) ;
-    let prehash = verb_str ^ endp ^ string_of_int nonce ^ data in
+  let sign ?(data="") ~secret ~verb endp =
+    let expire_in = string_of_int (expire 30) in
+    let prehash = (string_of_verb verb) ^ endp ^ expire_in ^ data in
+    Log.debug (fun m -> m "prehash %s" prehash) ;
     let sign = Digestif.SHA256.(hmac_string ~key:secret prehash |> to_hex) in
-    nonce, sign
+    expire_in, sign
 
-  let mk_query_params ?(data="") ~key ~secret ~api ~verb uri =
+  let mk_query_params ?data ~key ~secret ~verb uri =
     let endp = Uri.path_and_query uri in
-    let nonce, signature = sign ~secret ~verb ~endp ~data api in
-    [ (match api with
-          | Rest -> "api-expires"
-          | Ws -> "api-nonce"), [string_of_int nonce] ;
+    let expire_in, signature = sign ?data ~secret ~verb endp in
+    [ "api-expires", [expire_in] ;
       "api-key", [key];
       "api-signature", [signature];
     ]
