@@ -19,15 +19,15 @@ let wrap_request_light
     ?(speed=`Quick) n f =
   Alcotest_async.test_case ~timeout n speed begin fun () ->
     f () |>
-    Deferred.Or_error.ignore |>
-    Deferred.Or_error.ok_exn
+    Deferred.ignore
   end
 
 let rest = [
-  wrap_request "markets" Ftx_rest.markets ;
+  Alcotest_async.test_case "instruments" `Quick
+    (fun () -> Deferred.ignore (Bmex_rest.Instrument.active ())) ;
 ]
 
 let () =
-  Alcotest.run ~and_exit:false "ftx" [
+  Alcotest.run ~and_exit:false "bmex" [
     "rest", rest ;
   ]

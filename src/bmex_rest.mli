@@ -1,12 +1,12 @@
-open Core
+(* open Core *)
 open Async
 
-open Bmex
+(* open Bmex *)
 open Bitmex_types
 
 module Instrument : sig
-  val active_and_indices : testnet:bool ->
-    (Cohttp.Response.t * Instrument.t list) Deferred.Or_error.t
+  val active :
+    ?buf:Bi_outbuf.t -> ?testnet:bool -> unit -> Instrument.t list Deferred.t
 end
 
 (* module Execution : sig

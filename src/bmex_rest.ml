@@ -1,34 +1,30 @@
 open Core
 open Async
 
-let src =
-  Logs.Src.create "bmex.rest" ~doc:"BitMEX API - REST"
-
-module C = Cohttp
-open Cohttp_async
+(* let src = Logs.Src.create "bmex.rest" ~doc:"BitMEX API - REST" *)
 
 open Bmex
 open Bitmex_types
 
-module Error = struct
-  type t = {
-    name: string;
-    message: string;
-  }
-
-  let encoding =
-    let open Json_encoding in
-    conv
-      (fun { name ; message } -> (name, message))
-      (fun (name, message) -> { name ; message })
-      (obj2
-        (req "name" string)
-        (req "message" string))
-
-  let wrapped_encoding =
-    let open Json_encoding in
-    obj1 (req "error" encoding)
-end
+(* module Error = struct
+ *   type t = {
+ *     name: string;
+ *     message: string;
+ *   }
+ * 
+ *   let encoding =
+ *     let open Json_encoding in
+ *     conv
+ *       (fun { name ; message } -> (name, message))
+ *       (fun (name, message) -> { name ; message })
+ *       (obj2
+ *         (req "name" string)
+ *         (req "message" string))
+ * 
+ *   let wrapped_encoding =
+ *     let open Json_encoding in
+ *     obj1 (req "error" encoding)
+ * end *)
 
 (* let mk_headers ?(data="") ?credentials ~verb uri =
  *   match credentials with
@@ -181,12 +177,12 @@ end
  * end *)
 
 module Instrument = struct
-  let active ~testnet =
+  let active ?buf ?(testnet=false) () =
     let url = if testnet then testnet_url else url in
     let url = Uri.with_path url "/api/v1/instrument/active" in
-    Fastrest.simple_call ~meth:`GET url >>= fun (_resp, body) ->
-    Pipe.read_all body >>= fun q ->
-    Queue.
+    Fastrest.simple_call_string ~meth:`GET url >>| fun (_resp, body) ->
+    let instrs = Yojson.Safe.(Util.to_list (from_string ?buf body)) in
+    List.map instrs ~f:Instrument.of_yojson
 end
 
 (* module Execution = struct
