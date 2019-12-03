@@ -70,20 +70,17 @@ module Quote : sig
 end
 
 module Crypto : sig
-  type api = Rest | Ws
-
   val sign :
     ?data:string ->
     secret:string ->
     verb:verb ->
-    endp:string ->
-    api -> int * string
+    string ->
+    string * string
 
   val mk_query_params :
     ?data:string ->
     key:string ->
     secret:string ->
-    api:api ->
     verb:verb ->
     Uri.t -> (string * string list) list
 end

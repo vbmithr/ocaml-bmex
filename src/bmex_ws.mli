@@ -68,16 +68,16 @@ module Request : sig
     | Subscribe of Sub.t list
     | Unsubscribe of Sub.t list
     | CancelAllAfter of int
-    | AuthKey of {
+    | AuthKeyExpires of {
         key : string ;
-        nonce : int ;
+        expiresIn : string ;
         signature : string
       }
 
   val subscribe : Sub.t list -> t
   val unsubscribe : Sub.t list -> t
   val cancel_all_after : int -> t
-  val authkey : key:string -> nonce:int -> signature:string -> t
+  val authkey : key:string -> expiresIn:string -> signature:string -> t
 
   val encoding : t Json_encoding.encoding
 end

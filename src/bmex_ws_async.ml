@@ -24,7 +24,7 @@ let connect
   let auth_params = match auth with
     | None -> []
     | Some (key, secret) ->
-      Crypto.mk_query_params ~key ~secret ~api:Ws ~verb:Get url in
+      Crypto.mk_query_params ~key ~secret ~verb:Get url in
   let query_params =
     match md, topics with
     | true, _ -> []
@@ -67,7 +67,7 @@ let with_connection
   let auth_params = match auth with
     | None -> []
     | Some (key, secret) ->
-      Crypto.mk_query_params ~key ~secret ~api:Ws ~verb:Get url in
+      Crypto.mk_query_params ~key ~secret ~verb:Get url in
   let query_params =
     match md, topics with
     | true, _ -> []
