@@ -5,7 +5,8 @@ open Bmex
 open Bitmex_types
 
 val activeInstruments :
-  ?buf:Bi_outbuf.t -> ?testnet:bool -> unit -> Instrument.t list Deferred.t
+  ?buf:Bi_outbuf.t -> ?testnet:bool -> unit ->
+  Instrument.t list Deferred.Or_error.t
 
 val trades :
   ?buf:Bi_outbuf.t ->
@@ -18,7 +19,7 @@ val trades :
   ?startTime:Time_ns.t ->
   ?endTime:Time_ns.t ->
   string ->
-  Trade.t list Deferred.t
+  Trade.t list Deferred.Or_error.t
 
 val tradeHistory :
   ?buf:Bi_outbuf.t ->
@@ -33,7 +34,7 @@ val tradeHistory :
   key:string ->
   secret:string ->
   unit ->
-  Execution.t list Deferred.t
+  Execution.t list Deferred.Or_error.t
 
 val positions :
   ?buf:Bi_outbuf.t ->
@@ -44,7 +45,7 @@ val positions :
   key:string ->
   secret:string ->
   unit ->
-  Position.t list Deferred.t
+  Position.t list Deferred.Or_error.t
 
 val openOrders :
   ?buf:Bi_outbuf.t ->
@@ -59,7 +60,7 @@ val openOrders :
   key:string ->
   secret:string ->
   unit ->
-  Order.t list Deferred.t
+  Order.t list Deferred.Or_error.t
 
 type order = {
   symbol : string ;
@@ -150,8 +151,13 @@ val cancelAll :
   unit ->
   Order.t list Deferred.Or_error.t
 
+type cancelAllAfter = {
+  now: Ptime.t ;
+  cancelTime: Ptime.t ;
+}
+
 val cancelAllAfter :
   ?buf:Bi_outbuf.t ->
   testnet:bool -> key:string -> secret:string ->
   Time_ns.Span.t ->
-  unit Deferred.Or_error.t
+  cancelAllAfter Deferred.Or_error.t

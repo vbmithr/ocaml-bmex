@@ -6,7 +6,7 @@ let src = Logs.Src.create "bmex.rest" ~doc:"BitMEX API - REST"
 module Log = (val Logs_async.src_log src : Logs_async.LOG)
 
 open Bmex
-open Bitmex_types
+module BT = Bitmex_types
 
 let err =
   let open Json_encoding in
@@ -18,9 +18,11 @@ let err =
 let activeInstruments ?buf ?(testnet=false) () =
   let url = if testnet then testnet_url else url in
   let url = Uri.with_path url "/api/v1/instrument/active" in
-  Fastrest.simple_call_string ~meth:`GET url >>| fun (_resp, body) ->
-  let instrs = Yojson.Safe.(Util.to_list (from_string ?buf body)) in
-  List.map instrs ~f:Instrument.of_yojson
+  Monitor.try_with_or_error begin fun () ->
+    Fastrest.simple_call_string ~meth:`GET url >>| fun (_resp, body) ->
+    let instrs = Yojson.Safe.(Util.to_list (from_string ?buf body)) in
+    List.map instrs ~f:BT.Instrument.of_yojson
+  end
 
 let trades ?buf ?(testnet=false)
     ?filter ?columns ?count ?start
@@ -38,9 +40,11 @@ let trades ?buf ?(testnet=false)
   let url = if testnet then testnet_url else url in
   let url = Uri.with_path url "/api/v1/trade" in
   let url = Uri.with_query url query in
-  Fastrest.simple_call_string ~meth:`GET url >>| fun (_resp, body) ->
-  let instrs = Yojson.Safe.(Util.to_list (from_string ?buf body)) in
-  List.map instrs ~f:Trade.of_yojson
+  Monitor.try_with_or_error begin fun () ->
+    Fastrest.simple_call_string ~meth:`GET url >>| fun (_resp, body) ->
+    let instrs = Yojson.Safe.(Util.to_list (from_string ?buf body)) in
+    List.map instrs ~f:BT.Trade.of_yojson
+  end
 
 let tradeHistory ?buf ?(testnet=false)
     ?startTime ?endTime ?start ?count ?symbol ?filter ?reverse ~key ~secret () =
@@ -58,9 +62,11 @@ let tradeHistory ?buf ?(testnet=false)
   let url = Uri.with_query url params in
   let auth_params = Crypto.mk_query_params ~key ~secret ~verb:Get url in
   let headers = Headers.(add_multi empty auth_params) in
-  Fastrest.simple_call_string ~headers ~meth:`GET url >>| fun (_resp, body) ->
-  let instrs = Yojson.Safe.(Util.to_list (from_string ?buf body)) in
-  List.map instrs ~f:Execution.of_yojson
+  Monitor.try_with_or_error begin fun () ->
+    Fastrest.simple_call_string ~headers ~meth:`GET url >>| fun (_resp, body) ->
+    let instrs = Yojson.Safe.(Util.to_list (from_string ?buf body)) in
+    List.map instrs ~f:BT.Execution.of_yojson
+  end
 
 let positions ?buf ?(testnet=false) ?filter ?columns ?count ~key ~secret () =
   let params = List.filter_opt [
@@ -73,9 +79,11 @@ let positions ?buf ?(testnet=false) ?filter ?columns ?count ~key ~secret () =
   let url = Uri.with_query url params in
   let auth_params = Crypto.mk_query_params ~key ~secret ~verb:Get url in
   let headers = Headers.(add_multi empty auth_params) in
-  Fastrest.simple_call_string ~headers ~meth:`GET url >>| fun (_resp, body) ->
-  let instrs = Yojson.Safe.(Util.to_list (from_string ?buf body)) in
-  List.map instrs ~f:Position.of_yojson
+  Monitor.try_with_or_error begin fun () ->
+    Fastrest.simple_call_string ~headers ~meth:`GET url >>| fun (_resp, body) ->
+    let instrs = Yojson.Safe.(Util.to_list (from_string ?buf body)) in
+    List.map instrs ~f:BT.Position.of_yojson
+  end
 
 let openOrders ?buf ?(testnet=false) ?startTime ?endTime
     ?start ?count ?symbol ?filter ?reverse ~key ~secret () =
@@ -93,9 +101,11 @@ let openOrders ?buf ?(testnet=false) ?startTime ?endTime
   let url = Uri.with_query url params in
   let auth_params = Crypto.mk_query_params ~key ~secret ~verb:Get url in
   let headers = Headers.(add_multi empty auth_params) in
-  Fastrest.simple_call_string ~headers ~meth:`GET url >>| fun (_resp, body) ->
-  let instrs = Yojson.Safe.(Util.to_list (from_string ?buf body)) in
-  List.map instrs ~f:Order.of_yojson
+  Monitor.try_with_or_error begin fun () ->
+    Fastrest.simple_call_string ~headers ~meth:`GET url >>| fun (_resp, body) ->
+    let instrs = Yojson.Safe.(Util.to_list (from_string ?buf body)) in
+    List.map instrs ~f:BT.Order.of_yojson
+  end
 
 type order = {
   symbol : string ;
@@ -191,7 +201,7 @@ let submit ?buf ?(testnet=false) ~key ~secret orders =
     let body_json = Yojson.Safe.from_string ?buf body in
     try
       let instrs = Yojson.Safe.Util.to_list body_json in
-      Deferred.Or_error.return (List.map instrs ~f:Order.of_yojson)
+      Deferred.Or_error.return (List.map instrs ~f:BT.Order.of_yojson)
     with _ ->
       Deferred.Or_error.fail (Yojson_encoding.destruct err body_json)
   end
@@ -251,7 +261,7 @@ let amend ?buf ?(testnet=false) ~key ~secret orders =
     let body_json = Yojson.Safe.from_string ?buf body in
     try
       let instrs = Yojson.Safe.Util.to_list body_json in
-      Deferred.Or_error.return (List.map instrs ~f:Order.of_yojson)
+      Deferred.Or_error.return (List.map instrs ~f:BT.Order.of_yojson)
     with _ ->
       Deferred.Or_error.fail (Yojson_encoding.destruct err body_json)
   end
@@ -282,7 +292,7 @@ let cancel
     let body_json = Yojson.Safe.from_string ?buf body in
     try
       let instrs = Yojson.Safe.Util.to_list body_json in
-      Deferred.Or_error.return (List.map instrs ~f:Order.of_yojson)
+      Deferred.Or_error.return (List.map instrs ~f:BT.Order.of_yojson)
     with _ ->
       Deferred.Or_error.fail (Yojson_encoding.destruct err body_json)
   end
@@ -305,10 +315,22 @@ let cancelAll ?buf ?(testnet=false) ?symbol ?filter ?text ~key ~secret () =
     let body_json = Yojson.Safe.from_string ?buf body in
     try
       let instrs = Yojson.Safe.Util.to_list body_json in
-      Deferred.Or_error.return (List.map instrs ~f:Order.of_yojson)
+      Deferred.Or_error.return (List.map instrs ~f:BT.Order.of_yojson)
     with _ ->
       Deferred.Or_error.fail (Yojson_encoding.destruct err body_json)
   end
+
+type cancelAllAfter = {
+  now: Ptime.t ;
+  cancelTime: Ptime.t ;
+}
+
+let caa_encoding =
+  let open Json_encoding in
+  conv
+    (fun _ -> assert false)
+    (fun (now, cancelTime) -> { now; cancelTime })
+    (obj2 (req "now" Ptime.encoding) (req "cancelTime" Ptime.encoding))
 
 let cancelAllAfter ?buf ~testnet ~key ~secret timeout =
   let timeout = Time_ns.Span.to_int_ms timeout in
@@ -325,7 +347,7 @@ let cancelAllAfter ?buf ~testnet ~key ~secret timeout =
     let body_json = Yojson.Safe.from_string ?buf body in
     try
       Deferred.Or_error.return
-        (Yojson_encoding.destruct Json_encoding.empty body_json)
+        (Yojson_encoding.destruct caa_encoding body_json)
     with _ ->
       Deferred.Or_error.fail (Yojson_encoding.destruct err body_json)
   end

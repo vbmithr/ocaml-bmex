@@ -35,11 +35,6 @@ let wrap_request_light
     Deferred.ignore
   end
 
-let raise_or_ignore f =
-  f () >>= function
-  | Error e -> Error.raise e
-  | Ok _v -> Deferred.unit
-
 let orderCycle () =
   let clOrdID = Uuidm.create `V4 in
   let price = 6000. in
@@ -49,28 +44,31 @@ let orderCycle () =
   submit ~testnet:true
     ~key:cfg.Cfg.key ~secret:cfg.Cfg.secret [o] >>=? fun ords ->
   let bmxO = List.hd_exn ords in
-  let orderID =
-    Option.value_exn (Uuidm.of_string (Uuid.to_string bmxO.orderID)) in
-  let amds = [createAmend ~orderID ~price:(price +. 100.) ()] in
+  let amds = [createAmend ~orderID:bmxO.orderID ~price:(price +. 100.) ()] in
   amend ~testnet:true ~key:cfg.Cfg.key ~secret:cfg.Cfg.secret amds >>=? fun _ ->
   cancel ~testnet:true ~key:cfg.Cfg.key ~secret:cfg.Cfg.secret ~clOrdIDs:[clOrdID] ()
 
+let raise_on_error f =
+  f () >>= function
+  | Error e -> Error.raise e
+  | Ok _v -> Deferred.unit
+
 let rest = [
   Alcotest_async.test_case "instruments" `Quick (fun () ->
-      Deferred.ignore (activeInstruments ())) ;
+      raise_on_error (fun () -> activeInstruments ())) ;
   Alcotest_async.test_case "trades" `Quick (fun () ->
-      Deferred.ignore (trades "XBTUSD")) ;
+      raise_on_error (fun () -> trades "XBTUSD")) ;
   Alcotest_async.test_case "tradeHistory" `Quick (fun () ->
-      Deferred.ignore (tradeHistory ~testnet:true ~key:cfg.Cfg.key ~secret:cfg.Cfg.secret ())) ;
+      raise_on_error (tradeHistory ~testnet:true ~key:cfg.Cfg.key ~secret:cfg.Cfg.secret)) ;
   Alcotest_async.test_case "positions" `Quick (fun () ->
-      Deferred.ignore (positions ~testnet:true ~key:cfg.Cfg.key ~secret:cfg.Cfg.secret ())) ;
+      raise_on_error (positions ~testnet:true ~key:cfg.Cfg.key ~secret:cfg.Cfg.secret)) ;
   Alcotest_async.test_case "openOrders" `Quick (fun () ->
-      Deferred.ignore (openOrders ~testnet:true ~key:cfg.Cfg.key ~secret:cfg.Cfg.secret ())) ;
-  Alcotest_async.test_case "orderCycle" `Quick (fun () -> raise_or_ignore orderCycle) ;
+      raise_on_error (openOrders ~testnet:true ~key:cfg.Cfg.key ~secret:cfg.Cfg.secret)) ;
+  Alcotest_async.test_case "orderCycle" `Quick (fun () -> raise_on_error orderCycle) ;
   Alcotest_async.test_case "deleteAll" `Quick (fun () ->
-      Deferred.ignore (cancelAll ~testnet:true ~key:cfg.Cfg.key ~secret:cfg.Cfg.secret ())) ;
+      raise_on_error (cancelAll ~testnet:true ~key:cfg.Cfg.key ~secret:cfg.Cfg.secret)) ;
   Alcotest_async.test_case "cancelAllAfter" `Quick (fun () ->
-      Deferred.ignore (cancelAllAfter ~testnet:true ~key:cfg.Cfg.key ~secret:cfg.Cfg.secret (Time_ns.Span.of_int_sec 10))) ;
+      raise_on_error (fun () -> cancelAllAfter ~testnet:true ~key:cfg.Cfg.key ~secret:cfg.Cfg.secret (Time_ns.Span.of_int_sec 10))) ;
 ]
 
 let () =
