@@ -1,42 +1,39 @@
-(* open Core *)
+open Core
 open Async
 
 (* open Bmex *)
 open Bitmex_types
 
-module Instrument : sig
-  val active :
-    ?buf:Bi_outbuf.t -> ?testnet:bool -> unit -> Instrument.t list Deferred.t
-end
+val activeInstruments :
+  ?buf:Bi_outbuf.t -> ?testnet:bool -> unit -> Instrument.t list Deferred.t
 
-(* module Execution : sig
- *   val trade_history :
- *     ?extract_exn:bool ->
- *     ?buf:Bi_outbuf.t ->
- *     testnet:bool ->
- *     key:string ->
- *     secret:string ->
- *     ?startTime:Time_ns.t ->
- *     ?endTime:Time_ns.t ->
- *     ?start:int ->
- *     ?count:int ->
- *     ?symbol:string ->
- *     ?filter:Yojson.Safe.t ->
- *     ?reverse:bool ->
- *     unit ->
- *     (Cohttp.Response.t * Execution.t list) Deferred.Or_error.t
- * 
- *   val all_trade_history :
- *     ?extract_exn:bool ->
- *     ?buf:Bi_outbuf.t ->
- *     testnet:bool ->
- *     key:string ->
- *     secret:string ->
- *     ?symbol:string ->
- *     ?filter:Yojson.Safe.t ->
- *     unit ->
- *     (Cohttp.Response.t * Execution.t list) Deferred.Or_error.t
- * end *)
+val trades :
+  ?buf:Bi_outbuf.t ->
+  ?testnet:bool ->
+  ?filter:Yojson.Safe.t ->
+  ?columns:string list ->
+  ?count:int ->
+  ?start:int ->
+  ?reverse:bool ->
+  ?startTime:Time_ns.t ->
+  ?endTime:Time_ns.t ->
+  string ->
+  Trade.t list Deferred.t
+
+val tradeHistory :
+  ?buf:Bi_outbuf.t ->
+  ?testnet:bool ->
+  ?startTime:Time_ns.t ->
+  ?endTime:Time_ns.t ->
+  ?start:int ->
+  ?count:int ->
+  ?symbol:string ->
+  ?filter:Yojson.Safe.t ->
+  ?reverse:bool ->
+  key:string ->
+  secret:string ->
+  unit ->
+  Execution.t list Deferred.t
 
 (* module Order : sig
  *   type t = {
@@ -152,9 +149,9 @@ end
  *     testnet:bool -> key:string -> secret:string ->
  *     Time_ns.Span.t ->
  *     Cohttp.Response.t Deferred.Or_error.t
- * end
- * 
- * module Position : sig
+ * end *)
+
+(* module Position : sig
  *   val get :
  *     ?extract_exn:bool ->
  *     ?buf:Bi_outbuf.t ->
@@ -166,26 +163,9 @@ end
  *     ?count:Core.Int.t ->
  *     unit ->
  *     (Cohttp.Response.t * Position.t list) Deferred.Or_error.t
- * end
- * 
- * module Trade : sig
- *   val get :
- *     ?extract_exn:bool ->
- *     ?buf:Bi_outbuf.t ->
- *     testnet:bool ->
- *     ?filter:Yojson.Safe.t ->
- *     ?columns:string list ->
- *     ?count:int ->
- *     ?start:int ->
- *     ?reverse:bool ->
- *     ?startTime:Time_ns.t ->
- *     ?endTime:Time_ns.t ->
- *     ?symbol:string ->
- *     unit ->
- *     (Cohttp.Response.t * Trade.t list) Deferred.Or_error.t
- * end
- * 
- * module ApiKey : sig
+ * end *)
+
+(* module ApiKey : sig
  *   module Permission : sig
  *     type t =
  *       | Perm of string

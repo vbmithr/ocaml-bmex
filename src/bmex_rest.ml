@@ -1,7 +1,9 @@
 open Core
 open Async
+(* open Httpaf *)
 
-(* let src = Logs.Src.create "bmex.rest" ~doc:"BitMEX API - REST" *)
+let src = Logs.Src.create "bmex.rest" ~doc:"BitMEX API - REST"
+module Log = (val Logs_async.src_log src : Logs_async.LOG)
 
 open Bmex
 open Bitmex_types
@@ -25,17 +27,6 @@ open Bitmex_types
  *     let open Json_encoding in
  *     obj1 (req "error" encoding)
  * end *)
-
-(* let mk_headers ?(data="") ?credentials ~verb uri =
- *   match credentials with
- *   | None -> None
- *   | Some (key, secret) ->
- *     let query_params =
- *       Crypto.mk_query_params ~data ~key ~secret ~api:Rest ~verb uri in
- *     ("content-type", "application/json") ::
- *     List.Assoc.map query_params ~f:List.hd_exn |>
- *     Cohttp.Header.of_list |>
- *     Option.some *)
 
 (* let call
  *     ?extract_exn
@@ -176,46 +167,53 @@ open Bitmex_types
  *     end
  * end *)
 
-module Instrument = struct
-  let active ?buf ?(testnet=false) () =
-    let url = if testnet then testnet_url else url in
-    let url = Uri.with_path url "/api/v1/instrument/active" in
-    Fastrest.simple_call_string ~meth:`GET url >>| fun (_resp, body) ->
-    let instrs = Yojson.Safe.(Util.to_list (from_string ?buf body)) in
-    List.map instrs ~f:Instrument.of_yojson
-end
+let activeInstruments ?buf ?(testnet=false) () =
+  let url = if testnet then testnet_url else url in
+  let url = Uri.with_path url "/api/v1/instrument/active" in
+  Fastrest.simple_call_string ~meth:`GET url >>| fun (_resp, body) ->
+  let instrs = Yojson.Safe.(Util.to_list (from_string ?buf body)) in
+  List.map instrs ~f:Instrument.of_yojson
 
-(* module Execution = struct
- *   let trade_history ?extract_exn ?buf ~testnet ~key ~secret
- *       ?startTime ?endTime ?start ?count ?symbol ?filter ?reverse () =
- *     let credentials = key, secret in
- *     let query = List.filter_opt [
- *         Option.map startTime ~f:(fun ts -> "startTime", [Time_ns.to_string ts]) ;
- *         Option.map endTime ~f:(fun ts -> "endTime", [Time_ns.to_string ts]) ;
- *         Option.map start ~f:(fun start -> "start", [Int.to_string start]) ;
- *         Option.map count ~f:(fun start -> "count", [Int.to_string start]) ;
- *         Option.map symbol ~f:(fun symbol -> "symbol", [symbol]) ;
- *         Option.map filter ~f:(fun filter -> "filter", [Yojson.Safe.to_string filter]) ;
- *         Option.map reverse ~f:(fun rev -> "reverse", [Bool.to_string rev]) ;
- *       ] in
- *     call ?extract_exn ?buf ~testnet ~credentials ~verb:Get ~query "/api/v1/execution/tradeHistory" >>|
- *     Or_error.map ~f:begin fun (resp, trades) ->
- *       resp, List.map (Yojson.Safe.Util.to_list trades) ~f:Execution.of_yojson
- *     end
- * 
- *   let all_trade_history ?extract_exn ?buf ~testnet ~key ~secret ?symbol ?filter () =
- *     let rec inner acc start =
- *       trade_history ?extract_exn ?buf ~testnet ~key ~secret ~start ~count:500 ?symbol ?filter () >>= function
- *       | Ok (resp, trades) ->
- *         let acc = acc @ trades in
- *         if List.length trades = 500 then
- *           inner acc (start + 500)
- *         else Deferred.Or_error.return (resp, acc)
- *       | Error err -> Deferred.Or_error.fail err
- *     in inner [] 0
- * end
- * 
- * module Order = struct
+let trades ?buf ?(testnet=false)
+    ?filter ?columns ?count ?start
+    ?reverse ?startTime ?endTime symbol =
+  let query = List.filter_opt [
+      Some ("symbol", [symbol]) ;
+      Option.map filter ~f:(fun filter -> "filter", [Yojson.Safe.to_string filter]) ;
+      Option.map columns ~f:(fun cs -> "columns", cs) ;
+      Option.map count ~f:(fun start -> "count", [Int.to_string start]) ;
+      Option.map start ~f:(fun start -> "start", [Int.to_string start]) ;
+      Option.map reverse ~f:(fun rev -> "reverse", [Bool.to_string rev]) ;
+      Option.map startTime ~f:(fun ts -> "startTime", [Time_ns.to_string ts]) ;
+      Option.map endTime ~f:(fun ts -> "endTime", [Time_ns.to_string ts]) ;
+    ] in
+  let url = if testnet then testnet_url else url in
+  let url = Uri.with_path url "/api/v1/trade" in
+  let url = Uri.with_query url query in
+  Fastrest.simple_call_string ~meth:`GET url >>| fun (_resp, body) ->
+  let instrs = Yojson.Safe.(Util.to_list (from_string ?buf body)) in
+  List.map instrs ~f:Trade.of_yojson
+
+let tradeHistory ?buf ?(testnet=false)
+    ?startTime ?endTime ?start ?count ?symbol ?filter ?reverse ~key ~secret () =
+  let params = List.filter_opt [
+      Option.map startTime ~f:(fun ts -> "startTime", [Time_ns.to_string ts]) ;
+      Option.map endTime ~f:(fun ts -> "endTime", [Time_ns.to_string ts]) ;
+      Option.map start ~f:(fun start -> "start", [Int.to_string start]) ;
+      Option.map count ~f:(fun start -> "count", [Int.to_string start]) ;
+      Option.map symbol ~f:(fun symbol -> "symbol", [symbol]) ;
+      Option.map filter ~f:(fun filter -> "filter", [Yojson.Safe.to_string filter]) ;
+      Option.map reverse ~f:(fun rev -> "reverse", [Bool.to_string rev]) ;
+    ] in
+  let auth_params = Crypto.mk_query_params ~key ~secret ~api:Rest ~verb:Get url in
+  let url = if testnet then testnet_url else url in
+  let url = Uri.with_path url "/api/v1/execution/tradeHistory" in
+  let url = Uri.with_query url (params @ auth_params) in
+  Fastrest.simple_call_string ~meth:`GET url >>| fun (_resp, body) ->
+  let instrs = Yojson.Safe.(Util.to_list (from_string ?buf body)) in
+  List.map instrs ~f:Execution.of_yojson
+
+(* module Order = struct
  *   type t = {
  *     symbol : string ;
  *     orderQty : int ;
@@ -413,25 +411,5 @@ end
  *     call ?extract_exn ?buf ~testnet ~credentials ~verb:Get ~query "/api/v1/position" >>|
  *     Or_error.map ~f:begin fun (resp, positions) ->
  *       resp, List.map (Yojson.Safe.Util.to_list positions) ~f:Position.of_yojson
- *     end
- * end
- * 
- * module Trade = struct
- *   let get ?extract_exn ?buf ~testnet
- *       ?filter ?columns ?count ?start
- *       ?reverse ?startTime ?endTime ?symbol () =
- *     let query = List.filter_opt [
- *         Option.map symbol ~f:(fun symbol -> "symbol", [symbol]) ;
- *         Option.map filter ~f:(fun filter -> "filter", [Yojson.Safe.to_string filter]) ;
- *         Option.map columns ~f:(fun cs -> "columns", cs) ;
- *         Option.map count ~f:(fun start -> "count", [Int.to_string start]) ;
- *         Option.map start ~f:(fun start -> "start", [Int.to_string start]) ;
- *         Option.map reverse ~f:(fun rev -> "reverse", [Bool.to_string rev]) ;
- *         Option.map startTime ~f:(fun ts -> "startTime", [Time_ns.to_string ts]) ;
- *         Option.map endTime ~f:(fun ts -> "endTime", [Time_ns.to_string ts]) ;
- *       ] in
- *     call ?extract_exn ?buf ~testnet ~verb:Get ~query "/api/v1/trade" >>|
- *     Or_error.map ~f:begin fun (resp, json) ->
- *       resp, List.map (Yojson.Safe.Util.to_list json) ~f:Trade.of_yojson
  *     end
  * end *)
