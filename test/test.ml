@@ -60,6 +60,12 @@ let rest = [
       raise_on_error (fun () -> trades "XBTUSD")) ;
   Alcotest_async.test_case "tradeHistory" `Quick (fun () ->
       raise_on_error (tradeHistory ~testnet:true ~key:cfg.Cfg.key ~secret:cfg.Cfg.secret)) ;
+  Alcotest_async.test_case "walletHistory" `Quick (fun () ->
+      raise_on_error (walletHistory ~testnet:true ~key:cfg.Cfg.key ~secret:cfg.Cfg.secret)) ;
+  Alcotest_async.test_case "walletSummary" `Quick (fun () ->
+      raise_on_error (walletSummary ~testnet:true ~key:cfg.Cfg.key ~secret:cfg.Cfg.secret)) ;
+  Alcotest_async.test_case "wallet" `Quick (fun () ->
+      raise_on_error (wallet ~testnet:true ~key:cfg.Cfg.key ~secret:cfg.Cfg.secret)) ;
   Alcotest_async.test_case "positions" `Quick (fun () ->
       raise_on_error (positions ~testnet:true ~key:cfg.Cfg.key ~secret:cfg.Cfg.secret)) ;
   Alcotest_async.test_case "openOrders" `Quick (fun () ->

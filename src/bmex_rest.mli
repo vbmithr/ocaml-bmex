@@ -36,6 +36,35 @@ val tradeHistory :
   unit ->
   Execution.t list Deferred.Or_error.t
 
+val walletHistory :
+  ?buf:Bi_outbuf.t ->
+  ?testnet:bool ->
+  ?currency:string ->
+  ?start:int ->
+  ?count:int ->
+  key:string ->
+  secret:string ->
+  unit ->
+  Transaction.t list Deferred.Or_error.t
+
+val walletSummary :
+  ?buf:Bi_outbuf.t ->
+  ?testnet:bool ->
+  ?currency:string ->
+  key:string ->
+  secret:string ->
+  unit ->
+  Wallet.t list Deferred.Or_error.t
+
+val wallet :
+  ?buf:Bi_outbuf.t ->
+  ?testnet:bool ->
+  ?currency:string ->
+  key:string ->
+  secret:string ->
+  unit ->
+  Wallet.t Deferred.Or_error.t
+
 val positions :
   ?buf:Bi_outbuf.t ->
   ?testnet:bool ->
@@ -158,6 +187,7 @@ type cancelAllAfter = {
 
 val cancelAllAfter :
   ?buf:Bi_outbuf.t ->
-  testnet:bool -> key:string -> secret:string ->
+  ?testnet:bool ->
+  key:string -> secret:string ->
   Time_ns.Span.t ->
   cancelAllAfter Deferred.Or_error.t
