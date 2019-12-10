@@ -35,35 +35,49 @@ val tradeHistory :
   secret:string ->
   unit ->
   Execution.t list Deferred.Or_error.t
+(** All balance affecting executions (trades, insurance,
+    settlement). count must be [1;500]. *)
+
+val executionHistory :
+  ?buf:Bi_outbuf.t ->
+  ?testnet:bool ->
+  key:string ->
+  secret:string ->
+  symbol:string ->
+  ts:Ptime.t ->
+  unit ->
+  Execution.t list Deferred.Or_error.t
+(** Execution history per symbol/day. Higher-level API compared to tradeHistory. *)
+
+val wallet :
+  ?buf:Bi_outbuf.t ->
+  ?testnet:bool ->
+  key:string ->
+  secret:string ->
+  unit ->
+  Wallet.t Deferred.Or_error.t
+(** Get your current wallet (XBt) information. *)
+
+val walletSummary :
+  ?buf:Bi_outbuf.t ->
+  ?testnet:bool ->
+  key:string ->
+  secret:string ->
+  unit ->
+  Wallet.t list Deferred.Or_error.t
+(** Get a split-out of wallet state (summarized history with
+    deposits/withdrawals/RealisedPLNs). *)
 
 val walletHistory :
   ?buf:Bi_outbuf.t ->
   ?testnet:bool ->
-  ?currency:string ->
   ?start:int ->
   ?count:int ->
   key:string ->
   secret:string ->
   unit ->
   Transaction.t list Deferred.Or_error.t
-
-val walletSummary :
-  ?buf:Bi_outbuf.t ->
-  ?testnet:bool ->
-  ?currency:string ->
-  key:string ->
-  secret:string ->
-  unit ->
-  Wallet.t list Deferred.Or_error.t
-
-val wallet :
-  ?buf:Bi_outbuf.t ->
-  ?testnet:bool ->
-  ?currency:string ->
-  key:string ->
-  secret:string ->
-  unit ->
-  Wallet.t Deferred.Or_error.t
+(** Get a detailed history of wallet movements (most precise). *)
 
 val positions :
   ?buf:Bi_outbuf.t ->

@@ -53,6 +53,9 @@ let raise_on_error f =
   | Error e -> Error.raise e
   | Ok _v -> Deferred.unit
 
+let date =
+  Option.value_exn (Ptime.of_date_time ((2019,08,23), ((0,0,0),0)))
+
 let rest = [
   Alcotest_async.test_case "instruments" `Quick (fun () ->
       raise_on_error (fun () -> activeInstruments ())) ;
@@ -66,6 +69,8 @@ let rest = [
       raise_on_error (walletSummary ~testnet:true ~key:cfg.Cfg.key ~secret:cfg.Cfg.secret)) ;
   Alcotest_async.test_case "wallet" `Quick (fun () ->
       raise_on_error (wallet ~testnet:true ~key:cfg.Cfg.key ~secret:cfg.Cfg.secret)) ;
+  Alcotest_async.test_case "executionHistory" `Quick (fun () ->
+      raise_on_error (executionHistory ~testnet:true ~key:cfg.Cfg.key ~secret:cfg.Cfg.secret ~symbol:"XBTUSD" ~ts:date)) ;
   Alcotest_async.test_case "positions" `Quick (fun () ->
       raise_on_error (positions ~testnet:true ~key:cfg.Cfg.key ~secret:cfg.Cfg.secret)) ;
   Alcotest_async.test_case "openOrders" `Quick (fun () ->

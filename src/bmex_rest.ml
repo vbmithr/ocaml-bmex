@@ -48,6 +48,8 @@ let trades ?buf ?(testnet=false)
 
 let tradeHistory ?buf ?(testnet=false)
     ?startTime ?endTime ?start ?count ?symbol ?filter ?reverse ~key ~secret () =
+  Option.iter start ~f:(fun start -> if start < 0 then invalid_arg "tradeHistory: start < 0") ;
+  Option.iter count ~f:(fun count -> if count < 1 || count > 500 then invalid_arg "tradeHistory: count < 1 || count > 500") ;
   let params = List.filter_opt [
       Option.map startTime ~f:(fun ts -> "startTime", [Time_ns.to_string ts]) ;
       Option.map endTime ~f:(fun ts -> "endTime", [Time_ns.to_string ts]) ;
@@ -352,9 +354,24 @@ let cancelAllAfter ?buf ?(testnet=false) ~key ~secret timeout =
       Deferred.Or_error.fail (Yojson_encoding.destruct err body_json)
   end
 
-let walletHistory ?buf ?(testnet=false) ?currency ?start ?count ~key ~secret ()  =
+let wallet ?buf ?(testnet=false) ~key ~secret ()  =
+  let url = if testnet then testnet_url else url in
+  let url = Uri.with_path url "/api/v1/user/wallet" in
+  let auth_params =
+    Crypto.mk_query_params ~key ~secret ~verb:Get url in
+  let headers = Headers.(add_multi json_base_headers auth_params) in
+  Monitor.try_with_join_or_error begin fun () ->
+    Fastrest.simple_call_string
+      ~headers ~meth:`GET url >>= fun (_resp, body) ->
+    let body_json = Yojson.Safe.from_string ?buf body in
+    try
+      Deferred.Or_error.return (BT.Wallet.of_yojson body_json)
+    with _ ->
+      Deferred.Or_error.fail (Yojson_encoding.destruct err body_json)
+  end
+
+let walletHistory ?buf ?(testnet=false) ?start ?count ~key ~secret ()  =
   let params = List.filter_opt [
-      Option.map currency ~f:(fun currency -> "currency", [currency]) ;
       Option.map start ~f:(fun start -> "start", [Int.to_string start]) ;
       Option.map count ~f:(fun start -> "count", [Int.to_string start]) ;
     ] in
@@ -375,13 +392,9 @@ let walletHistory ?buf ?(testnet=false) ?currency ?start ?count ~key ~secret () 
       Deferred.Or_error.fail (Yojson_encoding.destruct err body_json)
   end
 
-let walletSummary ?buf ?(testnet=false) ?currency ~key ~secret ()  =
-  let params = List.filter_opt [
-      Option.map currency ~f:(fun currency -> "currency", [currency]) ;
-    ] in
+let walletSummary ?buf ?(testnet=false) ~key ~secret ()  =
   let url = if testnet then testnet_url else url in
   let url = Uri.with_path url "/api/v1/user/walletSummary" in
-  let url = Uri.with_query url params in
   let auth_params =
     Crypto.mk_query_params ~key ~secret ~verb:Get url in
   let headers = Headers.(add_multi json_base_headers auth_params) in
@@ -396,12 +409,13 @@ let walletSummary ?buf ?(testnet=false) ?currency ~key ~secret ()  =
       Deferred.Or_error.fail (Yojson_encoding.destruct err body_json)
   end
 
-let wallet ?buf ?(testnet=false) ?currency ~key ~secret ()  =
-  let params = List.filter_opt [
-      Option.map currency ~f:(fun currency -> "currency", [currency]) ;
+let executionHistory ?buf ?(testnet=false) ~key ~secret ~symbol ~ts ()  =
+  let params = [
+    "symbol", [symbol] ;
+    "timestamp", [Ptime.to_rfc3339 ts] ;
     ] in
   let url = if testnet then testnet_url else url in
-  let url = Uri.with_path url "/api/v1/user/wallet" in
+  let url = Uri.with_path url "/api/v1/user/executionHistory" in
   let url = Uri.with_query url params in
   let auth_params =
     Crypto.mk_query_params ~key ~secret ~verb:Get url in
@@ -411,7 +425,8 @@ let wallet ?buf ?(testnet=false) ?currency ~key ~secret ()  =
       ~headers ~meth:`GET url >>= fun (_resp, body) ->
     let body_json = Yojson.Safe.from_string ?buf body in
     try
-      Deferred.Or_error.return (BT.Wallet.of_yojson body_json)
+      let execs = Yojson.Safe.Util.to_list body_json in
+      Deferred.Or_error.return (List.map execs ~f:BT.Execution.of_yojson)
     with _ ->
       Deferred.Or_error.fail (Yojson_encoding.destruct err body_json)
   end
