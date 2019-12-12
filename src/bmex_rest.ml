@@ -370,10 +370,10 @@ let wallet ?buf ?(testnet=false) ~key ~secret ()  =
       Deferred.Or_error.fail (Yojson_encoding.destruct err body_json)
   end
 
-let walletHistory ?buf ?(testnet=false) ?start ?count ~key ~secret ()  =
-  let params = List.filter_opt [
-      Option.map start ~f:(fun start -> "start", [Int.to_string start]) ;
-      Option.map count ~f:(fun start -> "count", [Int.to_string start]) ;
+let walletHistory ?buf ?(testnet=false) ?(start=0) ?(count=1000) ~key ~secret () =
+  let params = [
+      "start", [Int.to_string start] ;
+      "count", [Int.to_string count] ;
     ] in
   let url = if testnet then testnet_url else url in
   let url = Uri.with_path url "/api/v1/user/walletHistory" in
