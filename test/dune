@@ -1,7 +1,7 @@
 (test
  (name       test)
  (modules    test)
- (preprocess (pps ppx_jane ppx_sexp_conv))
+ (preprocess (pps ppx_jane))
  (libraries
   bmex-rest
   alcotest-async
@@ -12,7 +12,7 @@
  (modules ws)
  (public_name bmex-ws-cli)
  (package bmex-ws-async)
- (preprocess (pps ppx_jane ppx_sexp_conv))
+ (preprocess (pps ppx_jane))
  (libraries
    logs-async-reporter
    bmex-ws
@@ -23,9 +23,22 @@
  (modules fh)
  (public_name bmex-ws-fh)
  (package bmex-ws-async)
- (preprocess (pps ppx_jane ppx_sexp_conv))
+ (preprocess (pps ppx_jane))
  (libraries
    logs-async-reporter
    bmex-ws
    bmex-ws-async
    kx-async))
+
+(executable
+ (name compta)
+ (modules compta)
+ (public_name bmex-compta)
+ (package bmex-rest)
+ (preprocess (pps ppx_jane))
+ (libraries
+   logs-async-reporter
+   bmex-rest
+   kx-async
+   bmex-ws
+   bmex-ws-async))

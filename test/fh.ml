@@ -70,7 +70,7 @@ let process_msgs kw msg =
     Log_async.info (fun m -> m "%a" Response.pp msg)
 
 let main testnet symbol =
-  Kx_async.Async.with_connection
+  Kx_async.with_connection
     (Uri.make ~scheme:"kdb" ~host:"localhost" ~port:5042 ()) ~f:begin fun { w = kw; _ } ->
     Bmex_ws_async.with_connection ~testnet
       ~topics:[Request.Sub.create ~symbol Topic.OrderBookL2] begin fun r w ->
