@@ -21,7 +21,8 @@ let cfg =
   List.Assoc.find_exn ~equal:String.equal
     (Sexplib.Sexp.load_sexp_conv_exn default_cfg Cfg.t_of_sexp) "BMEXT"
 
-let url = Uri.make ~scheme:"kdb" ~host:"localhost" ~port:5042 ()
+(* let url = Uri.make ~scheme:"unix+kdb" ~path:"/tmp/kx.5042" () *)
+let url = Uri.make ~scheme:"unix+kdb" ~host:"localhost" ~port:5042 ()
 
 let side_of_string = function "buy" -> Fixtypes.Side.Buy | _ -> Sell
 let string_of_side = function Fixtypes.Side.Buy -> "buy" | Sell -> "sell"
@@ -69,15 +70,16 @@ let kx_of_transfers transfers =
 
 let retrieveTransfers w =
   let rec inner start =
-    Bmex_rest.walletHistory ~testnet:true ~key:cfg.key ~secret:cfg.secret ~start ~count:10000 () >>=? fun txs ->
-    let len = List.length txs in
-    Pipe.write w (kx_of_transfers txs) >>= fun () ->
-    Logs_async.app (fun m -> m "Found %d txs" len) >>= fun () ->
-    Deferred.List.iter txs ~f:begin fun tx ->
-      Log_async.info (fun m -> m "%a" Sexp.pp (Transaction.sexp_of_t tx))
-    end >>= fun () ->
-    if len = 0 then Deferred.Or_error.return ()
-    else inner (start+len)
+    Bmex_rest.walletHistory ~testnet:true ~key:cfg.key ~secret:cfg.secret ~start ~count:100 () >>=? fun txs ->
+    match List.length txs with
+    | 0 -> Deferred.Or_error.return ()
+    | len ->
+      Pipe.write w (kx_of_transfers txs) >>= fun () ->
+      Logs_async.app (fun m -> m "Found %d txs" len) >>= fun () ->
+      (* Deferred.List.iter txs ~f:begin fun tx ->
+       *   Log_async.info (fun m -> m "%a" Sexp.pp (Transaction.sexp_of_t tx))
+       * end >>= fun () -> *)
+      inner (start+len)
   in
   inner 0
 
