@@ -3,6 +3,7 @@ open Async
 open Bitmex_types
 
 let src = Logs.Src.create "bmex.compta"
+module Log = (val Logs.src_log src : Logs.LOG)
 module Log_async = (val Logs_async.src_log src : Logs_async.LOG)
 
 module Cfg = struct
@@ -54,8 +55,12 @@ let kx_of_transfers transfers =
   let fees = Array.create ~len Float.nan in
   List.iteri transfers ~f:begin fun i ({ transactID; currency; transactType; amount; fee; transactStatus;
                                          address; tx; transactTime ; timestamp ; _ }:Transaction.t) ->
+    let transactStatus =
+      match String.split (Option.value_exn transactStatus) ~on:',' with
+      | [status] -> status
+      | _ -> "Completed" in
     kinds.(i) <- Option.value_exn transactType ;
-    statuses.(i) <- Option.value_exn transactStatus ;
+    statuses.(i) <- transactStatus ;
     refids.(i) <- transactID ;
     times.(i) <- Option.(value ~default:Kx.np (first_some transactTime timestamp)) ;
     syms.(i) <- Option.value_exn currency ;
@@ -70,15 +75,12 @@ let kx_of_transfers transfers =
 
 let retrieveTransfers w =
   let rec inner start =
-    Bmex_rest.walletHistory ~testnet:true ~key:cfg.key ~secret:cfg.secret ~start ~count:100 () >>=? fun txs ->
+    Bmex_rest.walletHistory ~testnet:true ~key:cfg.key ~secret:cfg.secret ~start ~count:10000 () >>=? fun txs ->
     match List.length txs with
     | 0 -> Deferred.Or_error.return ()
     | len ->
+      Log_async.app (fun m -> m "Found %d txs" len) >>= fun () ->
       Pipe.write w (kx_of_transfers txs) >>= fun () ->
-      Logs_async.app (fun m -> m "Found %d txs" len) >>= fun () ->
-      (* Deferred.List.iter txs ~f:begin fun tx ->
-       *   Log_async.info (fun m -> m "%a" Sexp.pp (Transaction.sexp_of_t tx))
-       * end >>= fun () -> *)
       inner (start+len)
   in
   inner 0
