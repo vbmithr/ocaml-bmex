@@ -8,32 +8,47 @@ let src = Logs.Src.create "bmex.ws.async" ~doc:"BitMEX API - Websockets"
 module Log = (val Logs.src_log src : Logs.LOG)
 module Log_async = (val Logs_async.src_log src : Logs_async.LOG)
 
-let url_of_opts testnet md =
-  Uri.with_path
-    (if testnet then testnet_url else url)
-    (if md then "realtimemd" else "realtime")
+module T = struct
+  type t = {
+    r: Response.t Pipe.Reader.t ;
+    w: Request.t Pipe.Writer.t ;
+  }
+
+  let create r w = { r; w }
+
+  module Address = Uri_sexp
+
+  let is_closed { r; w } = Pipe.(is_closed r && is_closed w)
+  let close { r; w } =
+    Pipe.close w ;
+    Pipe.close_read r ;
+    Deferred.unit
+  let close_finished { r; w } =
+    Deferred.all_unit [Pipe.closed r;
+                       Pipe.closed w]
+end
+include T
+
+let is_md url = String.equal (Uri.path url) "realtimemd"
 
 let connect
     ?(buf=Bi_outbuf.create 4096)
     ?(query_params=[])
     ?auth
-    ?(testnet=false)
-    ?(md=false)
-    ?(topics=[]) () =
-  let url = url_of_opts testnet md in
+    ?(topics=[]) url =
   let auth_params = match auth with
     | None -> []
     | Some (key, secret) ->
       Crypto.mk_query_params ~key ~secret ~verb:Get url in
   let query_params =
-    match md, topics with
+    match is_md url, topics with
     | true, _ -> []
     | false, [] -> auth_params @ query_params
     | false, topics -> ["subscribe", List.map ~f:Request.Sub.to_string topics] @
                        auth_params @ query_params in
   let url = Uri.add_query_params url query_params in
   Deferred.Or_error.map (Fastws_async.EZ.connect url)
-    ~f:begin fun { r; w; cleaned_up } ->
+    ~f:begin fun { r; w; _ } ->
       let client_read = Pipe.map r ~f:begin fun msg ->
           Yojson_encoding.destruct_safe
             Response.encoding (Yojson.Safe.from_string ~buf msg)
@@ -48,11 +63,19 @@ let connect
         Log.debug (fun m -> m "-> %s" doc) ;
         doc
       end ;
-      client_read, client_write, cleaned_up
+      create client_read client_write
     end
 
-let connect_exn ?buf ?query_params ?auth ?testnet ?md ?topics () =
-  connect ?buf ?query_params ?auth ?testnet ?md ?topics () >>= function
+module Persistent = struct
+  include Persistent_connection_kernel.Make(T)
+
+  let create' ~server_name ?on_event ?retry_delay ?buf ?query_params ?auth ?topics =
+    create ~server_name ?on_event ?retry_delay
+      ~connect:(connect ?buf ?query_params ?auth ?topics)
+end
+
+let connect_exn ?buf ?query_params ?auth ?topics url =
+  connect ?buf ?query_params ?auth ?topics url >>= function
   | Error e -> Error.raise e
   | Ok a -> return a
 
@@ -60,16 +83,13 @@ let with_connection
     ?(buf=Bi_outbuf.create 4096)
     ?(query_params=[])
     ?auth
-    ?(testnet=false)
-    ?(md=false)
-    ?(topics=[]) f =
-  let url = url_of_opts testnet md in
+    ?(topics=[]) ~f url =
   let auth_params = match auth with
     | None -> []
     | Some (key, secret) ->
       Crypto.mk_query_params ~key ~secret ~verb:Get url in
   let query_params =
-    match md, topics with
+    match is_md url, topics with
     | true, _ -> []
     | false, [] -> auth_params @ query_params
     | false, topics -> ["subscribe", List.map ~f:Request.Sub.to_string topics] @
@@ -91,8 +111,8 @@ let with_connection
   end
 
 let with_connection_exn
-    ?buf ?query_params ?auth ?testnet ?md ?topics f =
+    ?buf ?query_params ?auth ?topics ~f url =
   with_connection
-    ?buf ?query_params ?auth ?testnet ?md ?topics f >>= function
+    ?buf ?query_params ?auth ?topics ~f url >>= function
   | Error e -> Error.raise e
   | Ok a -> return a

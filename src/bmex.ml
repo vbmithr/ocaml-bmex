@@ -3,8 +3,10 @@ open Sexplib.Std
 let src = Logs.Src.create "bmex" ~doc:"BitMEX API"
 module Log = (val Logs.src_log src : Logs.LOG)
 
-let url = Uri.of_string "https://www.bitmex.com"
-let testnet_url = Uri.of_string "https://testnet.bitmex.com"
+let url = Uri.make ~scheme:"https" ~host:"www.bitmex.com" ()
+let testnet_url = Uri.make ~scheme:"https" ~host:"testnet.bitmex.com" ()
+let ws url = Uri.with_path url "realtime"
+let wsmd url = Uri.with_path url "realtimemd"
 
 module Ptime = struct
   include Ptime

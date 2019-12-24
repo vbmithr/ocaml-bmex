@@ -1,6 +1,7 @@
 open Core
 open Async
 
+open Bmex
 open Bmex_ws
 
 let src = Logs.Src.create "bmex.ws-test"  ~doc:"BitMEX API - WS test application"
@@ -25,7 +26,7 @@ let process_user_cmd w =
   loop ()
 
 let main () =
-  Bmex_ws_async.with_connection_exn begin fun r w ->
+  Bmex_ws_async.with_connection_exn (ws url) ~f:begin fun r w ->
     let log_incoming msg =
       Log_async.info (fun m -> m "%a" Response.pp msg) in
     Deferred.all_unit [
