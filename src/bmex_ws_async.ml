@@ -31,38 +31,46 @@ include T
 
 let is_md url = String.equal (Uri.path url) "realtimemd"
 
+let mk_auth_params url = function
+  | None -> []
+  | Some (key, secret) ->
+    Crypto.mk_query_params ~key ~secret ~verb:Get url
+
+let mk_query_params ~auth ~topics ~query_params =
+  match is_md url, topics with
+  | true, _ -> []
+  | false, [] -> mk_auth_params url auth @ query_params
+  | false, topics ->
+    ["subscribe", List.map ~f:Request.Sub.to_string topics] @
+    mk_auth_params url auth @ query_params
+
+let mk_url ?auth ?(topics=[]) ?(query_params=[]) url =
+  Uri.add_query_params url (mk_query_params ~auth ~topics ~query_params)
+
+let mk_client_read ?buf r =
+  Pipe.map r ~f:begin fun msg ->
+    Yojson_encoding.destruct_safe
+      Response.encoding (Yojson.Safe.from_string ?buf msg)
+  end
+
+let mk_client_write ?buf w =
+  Pipe.create_writer begin fun ws_read ->
+    Pipe.transfer ws_read w ~f:begin fun r ->
+      let doc = Yojson.Safe.to_string ?buf
+          (Yojson_encoding.construct Request.encoding r) in
+      Log.debug (fun m -> m "-> %s" doc) ;
+      doc
+    end
+  end
+
 let connect
-    ?(buf=Bi_outbuf.create 4096)
-    ?(query_params=[])
-    ?auth
-    ?(topics=[]) url =
-  let auth_params = match auth with
-    | None -> []
-    | Some (key, secret) ->
-      Crypto.mk_query_params ~key ~secret ~verb:Get url in
-  let query_params =
-    match is_md url, topics with
-    | true, _ -> []
-    | false, [] -> auth_params @ query_params
-    | false, topics -> ["subscribe", List.map ~f:Request.Sub.to_string topics] @
-                       auth_params @ query_params in
-  let url = Uri.add_query_params url query_params in
+    ?(buf=Bi_outbuf.create 4096) ?query_params ?auth ?topics url =
+  let url = mk_url ?auth ?topics ?query_params url in
   Deferred.Or_error.map (Fastws_async.EZ.connect url)
     ~f:begin fun { r; w; _ } ->
-      let client_read = Pipe.map r ~f:begin fun msg ->
-          Yojson_encoding.destruct_safe
-            Response.encoding (Yojson.Safe.from_string ~buf msg)
-        end in
-      let client_write = Pipe.create_writer begin fun ws_read ->
-          Pipe.transfer ws_read w ~f:begin fun r ->
-            let doc = Yojson.Safe.to_string ~buf
-                (Yojson_encoding.construct Request.encoding r) in
-            Log.debug (fun m -> m "-> %s" doc) ;
-            doc
-          end
-        end in
+      let client_write = mk_client_write ~buf w in
       (Pipe.closed client_write >>> fun () -> Pipe.close w) ;
-      create client_read client_write
+      create (mk_client_read r) client_write
     end
 
 module Persistent = struct
@@ -79,38 +87,13 @@ let connect_exn ?buf ?query_params ?auth ?topics url =
   | Ok a -> return a
 
 let with_connection
-    ?(buf=Bi_outbuf.create 4096)
-    ?(query_params=[])
-    ?auth
-    ?(topics=[]) ~f url =
-  let auth_params = match auth with
-    | None -> []
-    | Some (key, secret) ->
-      Crypto.mk_query_params ~key ~secret ~verb:Get url in
-  let query_params =
-    match is_md url, topics with
-    | true, _ -> []
-    | false, [] -> auth_params @ query_params
-    | false, topics -> ["subscribe", List.map ~f:Request.Sub.to_string topics] @
-                       auth_params @ query_params in
-  let url = Uri.add_query_params url query_params in
+    ?(buf=Bi_outbuf.create 4096) ?query_params ?auth ?topics ~f url =
+  let url = mk_url ?auth ?topics ?query_params url in
   Fastws_async.EZ.with_connection url ~f:begin fun r w ->
-    let client_read = Pipe.map r ~f:begin fun msg ->
-        Yojson_encoding.destruct_safe Response.encoding (Yojson.Safe.from_string ~buf msg)
-      end in
-    let ws_read, client_write = Pipe.create () in
-    don't_wait_for @@
-    Pipe.transfer ws_read w ~f:begin fun r ->
-      let doc =
-        Yojson.Safe.to_string ~buf (Yojson_encoding.construct Request.encoding r) in
-      Log.debug (fun m -> m "-> %s" doc) ;
-      doc
-    end ;
-    f client_read client_write
+    f (mk_client_read ~buf r) (mk_client_write ~buf w)
   end
 
-let with_connection_exn
-    ?buf ?query_params ?auth ?topics ~f url =
+let with_connection_exn ?buf ?query_params ?auth ?topics ~f url =
   with_connection
     ?buf ?query_params ?auth ?topics ~f url >>= function
   | Error e -> Error.raise e
