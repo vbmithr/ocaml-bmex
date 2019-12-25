@@ -53,16 +53,15 @@ let connect
           Yojson_encoding.destruct_safe
             Response.encoding (Yojson.Safe.from_string ~buf msg)
         end in
-      let ws_read, client_write = Pipe.create () in
-      don't_wait_for
-        (Pipe.closed client_write >>| fun () -> Pipe.close w) ;
-      don't_wait_for @@
-      Pipe.transfer ws_read w ~f:begin fun r ->
-        let doc = Yojson.Safe.to_string ~buf
-            (Yojson_encoding.construct Request.encoding r) in
-        Log.debug (fun m -> m "-> %s" doc) ;
-        doc
-      end ;
+      let client_write = Pipe.create_writer begin fun ws_read ->
+          Pipe.transfer ws_read w ~f:begin fun r ->
+            let doc = Yojson.Safe.to_string ~buf
+                (Yojson_encoding.construct Request.encoding r) in
+            Log.debug (fun m -> m "-> %s" doc) ;
+            doc
+          end
+        end in
+      (Pipe.closed client_write >>> fun () -> Pipe.close w) ;
       create client_read client_write
     end
 
