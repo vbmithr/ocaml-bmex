@@ -5,8 +5,6 @@ module Log = (val Logs.src_log src : Logs.LOG)
 
 let url = Uri.make ~scheme:"https" ~host:"www.bitmex.com" ()
 let testnet_url = Uri.make ~scheme:"https" ~host:"testnet.bitmex.com" ()
-let ws url = Uri.with_path url "realtime"
-let wsmd url = Uri.with_path url "realtimemd"
 
 module Ptime = struct
   include Ptime

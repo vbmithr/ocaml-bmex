@@ -1,54 +1,8 @@
-open Core
-open Async
 open Bmex_ws
 
-type t = {
-  r: Response.t Pipe.Reader.t ;
-  w: Request.t Pipe.Writer.t ;
-}
+val of_string : ?buf:Bi_outbuf.t -> string -> Response.t
+val to_string : ?buf:Bi_outbuf.t -> Request.t -> string
 
-val connect :
-  ?buf:Bi_outbuf.t ->
-  ?query_params:(string * string list) list ->
-  ?auth:string * string ->
-  ?topics:Request.Sub.t list -> Uri.t ->
-  t Deferred.Or_error.t
-
-val connect_exn :
-  ?buf:Bi_outbuf.t ->
-  ?query_params:(string * string list) list ->
-  ?auth:string * string ->
-  ?topics:Request.Sub.t list -> Uri.t ->
-  t Deferred.t
-
-val with_connection :
-  ?buf:Bi_outbuf.t ->
-  ?query_params:(string * string list) list ->
-  ?auth:string * string ->
-  ?topics:Request.Sub.t list ->
-  f:(Response.t Pipe.Reader.t -> Request.t Pipe.Writer.t  -> 'a Deferred.t) ->
-  Uri.t -> 'a Deferred.Or_error.t
-
-val with_connection_exn :
-  ?buf:Bi_outbuf.t ->
-  ?query_params:(string * string list) list ->
-  ?auth:string * string ->
-  ?topics:Request.Sub.t list ->
-  f:(Response.t Pipe.Reader.t -> Request.t Pipe.Writer.t  -> 'a Deferred.t) ->
-  Uri.t -> 'a Deferred.t
-
-module Persistent : sig
-  include Persistent_connection_kernel.S
-    with type address = Uri.t
-     and type conn = t
-
-  val create' :
-    server_name:string ->
-    ?on_event:(Event.t -> unit Deferred.t) ->
-    ?retry_delay:(unit -> Time_ns.Span.t) ->
-    ?buf:Bi_outbuf.t ->
-    ?query_params:(string * string list) list ->
-    ?auth:string * string ->
-    ?topics:(Request.Sub.t list) ->
-    (unit -> address Or_error.t Deferred.t) -> t
-end
+module Persistent : Persistent_connection_kernel.S
+  with type address = Uri.t
+   and type conn = (Response.t, Request.t) Fastws_async.t

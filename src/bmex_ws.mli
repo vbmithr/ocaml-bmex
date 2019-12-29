@@ -153,3 +153,9 @@ module MD : sig
   val message : id:string -> topic:string -> payload:Yojson.Safe.t -> t
   val auth : id:string -> topic:string -> key:string -> secret:string -> t
 end
+
+val mk_url :
+  ?md:bool ->
+  ?auth:string * string ->
+  ?topics:Request.Sub.t list ->
+  ?query_params:(string * string list) list -> Uri.t -> Uri.t

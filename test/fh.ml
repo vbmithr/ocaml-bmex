@@ -73,8 +73,12 @@ let process_msgs kw msg =
 let main testnet symbol =
   Kx_async.with_connection
     (Uri.make ~scheme:"kdb" ~host:"localhost" ~port:5042 ()) ~f:begin fun { w = kw; _ } ->
-    Bmex_ws_async.with_connection (ws (if testnet then testnet_url else url))
-      ~topics:[Request.Sub.create ~symbol Topic.OrderBookL2] ~f:begin fun r w ->
+    let url = mk_url ~topics:[Request.Sub.create ~symbol Topic.OrderBookL2]
+        (if testnet then testnet_url else url) in
+    let buf = Bi_outbuf.create 4096 in
+    let of_string = Bmex_ws_async.of_string ~buf in
+    let to_string = Bmex_ws_async.to_string ~buf in
+    Fastws_async.with_connection ~of_string ~to_string url ~f:begin fun _ r w ->
       Deferred.all_unit [
         process_user_cmd w ;
         Pipe.iter r ~f:(process_msgs kw)

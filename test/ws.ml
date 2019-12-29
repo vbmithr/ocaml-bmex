@@ -26,7 +26,11 @@ let process_user_cmd w =
   loop ()
 
 let main () =
-  Bmex_ws_async.with_connection_exn (ws url) ~f:begin fun r w ->
+  let url = mk_url url in
+  let buf = Bi_outbuf.create 4096 in
+  let to_string = Bmex_ws_async.to_string ~buf in
+  let of_string = Bmex_ws_async.of_string ~buf in
+  Fastws_async.with_connection ~to_string ~of_string url ~f:begin fun _ r w ->
     let log_incoming msg =
       Log_async.info (fun m -> m "%a" Response.pp msg) in
     Deferred.all_unit [
@@ -42,6 +46,6 @@ let () =
       let () = Logs_async_reporter.set_level_via_param [] in
       fun () ->
         Logs.set_reporter (Logs_async_reporter.reporter ()) ;
-        main ()
+        Deferred.Or_error.ok_exn (main ())
     ] end |>
   Command.run

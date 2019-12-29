@@ -1,9 +1,6 @@
 val url : Uri.t
 val testnet_url : Uri.t
 
-val ws : Uri.t -> Uri.t
-val wsmd : Uri.t -> Uri.t
-
 module Ptime : sig
   include module type of Ptime
     with type t = Ptime.t

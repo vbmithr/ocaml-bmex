@@ -443,3 +443,22 @@ module MD = struct
       Yojson_encoding.construct Request.encoding in
     message ~id ~topic ~payload
 end
+
+let is_md url = String.equal (Uri.path url) "realtimemd"
+
+let mk_auth_params url = function
+  | None -> []
+  | Some (key, secret) ->
+    Crypto.mk_query_params ~key ~secret ~verb:Get url
+
+let mk_query_params ~auth ~topics ~query_params =
+  match is_md url, topics with
+  | true, _ -> []
+  | false, [] -> mk_auth_params url auth @ query_params
+  | false, topics ->
+    ["subscribe", List.map Request.Sub.to_string topics] @
+    mk_auth_params url auth @ query_params
+
+let mk_url ?(md=false) ?auth ?(topics=[]) ?(query_params=[]) url =
+  let url = Uri.with_path url (if md then "realtimemd" else "realtime") in
+  Uri.add_query_params url (mk_query_params ~auth ~topics ~query_params)
