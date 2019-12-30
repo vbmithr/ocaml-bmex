@@ -86,7 +86,7 @@ let retrieveTransfers w =
   inner 0
 
 let main () =
-  Kx_async.with_connection url ~f:begin fun { w; _ } ->
+  Kx_async.with_connection url begin fun _ w ->
     retrieveTransfers w
   end >>= function
   | Error e -> Error.raise e

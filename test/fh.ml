@@ -72,21 +72,19 @@ let process_msgs kw msg =
 
 let main testnet symbol =
   Kx_async.with_connection
-    (Uri.make ~scheme:"kdb" ~host:"localhost" ~port:5042 ()) ~f:begin fun { w = kw; _ } ->
+    (Uri.make ~scheme:"kdb" ~host:"localhost" ~port:5042 ()) begin fun _ kw ->
     let url = mk_url ~topics:[Request.Sub.create ~symbol Topic.OrderBookL2]
         (if testnet then testnet_url else url) in
     let buf = Bi_outbuf.create 4096 in
     let of_string = Response.of_string ~buf in
     let to_string = Request.to_string ~buf in
-    Fastws_async.with_connection ~of_string ~to_string url ~f:begin fun _ r w ->
+    Fastws_async.with_connection ~of_string ~to_string url begin fun _ r w ->
       Deferred.all_unit [
         process_user_cmd w ;
         Pipe.iter r ~f:(process_msgs kw)
       ]
     end
-  end >>= function
-  | Error e -> Log_async.err (fun m -> m "%a" Error.pp e)
-  | Ok _ -> Deferred.unit
+  end
 
 let () =
   Command.async ~summary:"BitMEX toy feed handler" begin

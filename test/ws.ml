@@ -30,7 +30,7 @@ let main () =
   let buf = Bi_outbuf.create 4096 in
   let to_string = Request.to_string ~buf in
   let of_string = Response.of_string ~buf in
-  Fastws_async.with_connection ~to_string ~of_string url ~f:begin fun _ r w ->
+  Fastws_async.with_connection ~to_string ~of_string url begin fun _ r w ->
     let log_incoming msg =
       Log_async.info (fun m -> m "%a" Response.pp msg) in
     Deferred.all_unit [
@@ -46,6 +46,6 @@ let () =
       let () = Logs_async_reporter.set_level_via_param [] in
       fun () ->
         Logs.set_reporter (Logs_async_reporter.reporter ()) ;
-        Deferred.Or_error.ok_exn (main ())
+        main ()
     ] end |>
   Command.run
