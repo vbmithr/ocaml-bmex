@@ -253,6 +253,9 @@ module Request = struct
             end
           | _ -> invalid_arg "Request.encoding")
     ]
+
+  let to_string ?buf msg =
+    Yojson.Safe.to_string ?buf (Yojson_encoding.construct encoding msg)
 end
 
 module Response = struct
@@ -401,6 +404,9 @@ module Response = struct
         (function Update u -> Some u | _ -> None)
         (fun u -> Update u) ;
     ]
+
+  let of_string ?buf msg =
+    Yojson_encoding.destruct_safe encoding (Yojson.Safe.from_string ?buf msg)
 end
 
 module MD = struct

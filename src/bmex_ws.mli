@@ -80,6 +80,8 @@ module Request : sig
   val authkey : key:string -> expiresIn:string -> signature:string -> t
 
   val encoding : t Json_encoding.encoding
+  val to_string : ?buf:Bi_outbuf.t -> t -> string
+
 end
 
 module Response : sig
@@ -132,6 +134,8 @@ module Response : sig
 
   val pp : Format.formatter -> t -> unit
   val encoding : t Json_encoding.encoding
+  val of_string : ?buf:Bi_outbuf.t -> string -> t
+
 end
 
 module MD : sig

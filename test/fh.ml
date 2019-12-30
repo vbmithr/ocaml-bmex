@@ -76,8 +76,8 @@ let main testnet symbol =
     let url = mk_url ~topics:[Request.Sub.create ~symbol Topic.OrderBookL2]
         (if testnet then testnet_url else url) in
     let buf = Bi_outbuf.create 4096 in
-    let of_string = Bmex_ws_async.of_string ~buf in
-    let to_string = Bmex_ws_async.to_string ~buf in
+    let of_string = Response.of_string ~buf in
+    let to_string = Request.to_string ~buf in
     Fastws_async.with_connection ~of_string ~to_string url ~f:begin fun _ r w ->
       Deferred.all_unit [
         process_user_cmd w ;

@@ -28,8 +28,8 @@ let process_user_cmd w =
 let main () =
   let url = mk_url url in
   let buf = Bi_outbuf.create 4096 in
-  let to_string = Bmex_ws_async.to_string ~buf in
-  let of_string = Bmex_ws_async.of_string ~buf in
+  let to_string = Request.to_string ~buf in
+  let of_string = Response.of_string ~buf in
   Fastws_async.with_connection ~to_string ~of_string url ~f:begin fun _ r w ->
     let log_incoming msg =
       Log_async.info (fun m -> m "%a" Response.pp msg) in

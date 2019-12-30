@@ -11,23 +11,28 @@
  (name ws)
  (modules ws)
  (public_name bmex-ws-cli)
- (package bmex-ws-async)
+ (package bmex-ws)
  (preprocess (pps ppx_jane))
  (libraries
+   core
+   async
+   logs-async
    logs-async-reporter
-   bmex-ws
-   bmex-ws-async))
+   fastws-async
+   bmex-ws))
 
 (executable
  (name fh)
  (modules fh)
  (public_name bmex-ws-fh)
- (package bmex-ws-async)
+ (package bmex-ws)
  (preprocess (pps ppx_jane))
  (libraries
+   core
+   async
+   fastws-async
    logs-async-reporter
    bmex-ws
-   bmex-ws-async
    kx-async))
 
 (executable
@@ -40,5 +45,4 @@
    logs-async-reporter
    bmex-rest
    kx-async
-   bmex-ws
-   bmex-ws-async))
+   bmex-ws))

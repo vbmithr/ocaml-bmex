@@ -36,16 +36,3 @@
    bmex
    ptime
    sexplib))
-
-(library
- (name        bmex_ws_async)
- (public_name bmex-ws-async)
- (modules bmex_ws_async)
- (preprocess (pps ppx_sexp_conv))
- (libraries
-   bmex
-   bmex-ws
-   core
-   async
-   logs-async
-   fastws-async))
