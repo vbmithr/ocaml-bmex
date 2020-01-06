@@ -6,7 +6,7 @@ open Bitmex_types
 
 val activeInstruments :
   ?buf:Bi_outbuf.t -> ?testnet:bool -> unit ->
-  Instrument.t list Deferred.Or_error.t
+  Instrument.t list Deferred.t
 
 val trades :
   ?buf:Bi_outbuf.t ->
@@ -19,7 +19,7 @@ val trades :
   ?startTime:Time_ns.t ->
   ?endTime:Time_ns.t ->
   string ->
-  Trade.t list Deferred.Or_error.t
+  Trade.t list Deferred.t
 
 val tradeHistory :
   ?buf:Bi_outbuf.t ->
@@ -34,7 +34,7 @@ val tradeHistory :
   key:string ->
   secret:string ->
   unit ->
-  Execution.t list Deferred.Or_error.t
+  Execution.t list Deferred.t
 (** All balance affecting executions (trades, insurance,
     settlement). count must be [1;500]. *)
 
@@ -46,7 +46,7 @@ val executionHistory :
   symbol:string ->
   ts:Ptime.t ->
   unit ->
-  Execution.t list Deferred.Or_error.t
+  Execution.t list Deferred.t
 (** Execution history per symbol/day. Higher-level API compared to tradeHistory. *)
 
 val wallet :
@@ -55,7 +55,7 @@ val wallet :
   key:string ->
   secret:string ->
   unit ->
-  Wallet.t Deferred.Or_error.t
+  Wallet.t Deferred.t
 (** Get your current wallet (XBt) information. *)
 
 val walletSummary :
@@ -64,7 +64,7 @@ val walletSummary :
   key:string ->
   secret:string ->
   unit ->
-  Wallet.t list Deferred.Or_error.t
+  Wallet.t list Deferred.t
 (** Get a split-out of wallet state (summarized history with
     deposits/withdrawals/RealisedPLNs). *)
 
@@ -76,7 +76,7 @@ val walletHistory :
   key:string ->
   secret:string ->
   unit ->
-  Transaction.t list Deferred.Or_error.t
+  Transaction.t list Deferred.t
 (** Get a detailed history of wallet movements (most precise). *)
 
 val positions :
@@ -88,7 +88,7 @@ val positions :
   key:string ->
   secret:string ->
   unit ->
-  Position.t list Deferred.Or_error.t
+  Position.t list Deferred.t
 
 val openOrders :
   ?buf:Bi_outbuf.t ->
@@ -103,7 +103,7 @@ val openOrders :
   key:string ->
   secret:string ->
   unit ->
-  Order.t list Deferred.Or_error.t
+  Order.t list Deferred.t
 
 type order = {
   symbol : string ;
@@ -143,7 +143,7 @@ val submit :
   key:string ->
   secret:string ->
   order list ->
-  Order.t list Deferred.Or_error.t
+  Order.t list Deferred.t
 
 type amend = {
   orderID : Uuidm.t option ;
@@ -173,7 +173,7 @@ val amend :
   ?buf:Bi_outbuf.t ->
   ?testnet:bool -> key:string -> secret:string ->
   amend list ->
-  Order.t list Deferred.Or_error.t
+  Order.t list Deferred.t
 
 val cancel :
   ?buf:Bi_outbuf.t ->
@@ -182,7 +182,7 @@ val cancel :
   ?clOrdIDs:Uuidm.t list ->
   ?text:string ->
   key:string -> secret:string -> unit ->
-  Order.t list Deferred.Or_error.t
+  Order.t list Deferred.t
 
 val cancelAll :
   ?buf:Bi_outbuf.t ->
@@ -192,7 +192,7 @@ val cancelAll :
   ?text:string ->
   key:string -> secret:string ->
   unit ->
-  Order.t list Deferred.Or_error.t
+  Order.t list Deferred.t
 
 type cancelAllAfter = {
   now: Ptime.t ;
@@ -204,4 +204,4 @@ val cancelAllAfter :
   ?testnet:bool ->
   key:string -> secret:string ->
   Time_ns.Span.t ->
-  cancelAllAfter Deferred.Or_error.t
+  cancelAllAfter Deferred.t

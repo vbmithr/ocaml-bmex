@@ -75,7 +75,7 @@ let kx_of_transfers transfers =
 
 let retrieveTransfers w =
   let rec inner start =
-    Bmex_rest.walletHistory ~testnet:true ~key:cfg.key ~secret:cfg.secret ~start ~count:10000 () >>=? fun txs ->
+    Bmex_rest.walletHistory ~testnet:true ~key:cfg.key ~secret:cfg.secret ~start ~count:10000 () >>= fun txs ->
     match List.length txs with
     | 0 -> Deferred.Or_error.return ()
     | len ->

@@ -78,7 +78,7 @@ let main testnet symbol =
     let buf = Bi_outbuf.create 4096 in
     let of_string = Response.of_string ~buf in
     let to_string = Request.to_string ~buf in
-    Fastws_async.with_connection ~of_string ~to_string url begin fun _ r w ->
+    Fastws_async.with_connection ~of_string ~to_string url begin fun r w ->
       Deferred.all_unit [
         process_user_cmd w ;
         Pipe.iter r ~f:(process_msgs kw)

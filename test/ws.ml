@@ -30,7 +30,7 @@ let main () =
   let buf = Bi_outbuf.create 4096 in
   let to_string = Request.to_string ~buf in
   let of_string = Response.of_string ~buf in
-  Fastws_async.with_connection ~to_string ~of_string url begin fun _ r w ->
+  Fastws_async.with_connection ~to_string ~of_string url begin fun r w ->
     let log_incoming msg =
       Log_async.info (fun m -> m "%a" Response.pp msg) in
     Deferred.all_unit [

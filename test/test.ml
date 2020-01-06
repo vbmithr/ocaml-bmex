@@ -42,19 +42,16 @@ let orderCycle () =
       ~price ~symbol:"XBTUSD"
       ~orderQty:1 ~ordType:Limit clOrdID in
   submit ~testnet:true
-    ~key:cfg.Cfg.key ~secret:cfg.Cfg.secret [o] >>=? fun ords ->
+    ~key:cfg.Cfg.key ~secret:cfg.Cfg.secret [o] >>= fun ords ->
   let bmxO = List.hd_exn ords in
   let amds = [createAmend ~orderID:bmxO.orderID ~price:(price +. 100.) ()] in
-  amend ~testnet:true ~key:cfg.Cfg.key ~secret:cfg.Cfg.secret amds >>=? fun _ ->
+  amend ~testnet:true ~key:cfg.Cfg.key ~secret:cfg.Cfg.secret amds >>= fun _ ->
   cancel ~testnet:true ~key:cfg.Cfg.key ~secret:cfg.Cfg.secret ~clOrdIDs:[clOrdID] ()
-
-let raise_on_error f =
-  f () >>= function
-  | Error e -> Error.raise e
-  | Ok _v -> Deferred.unit
 
 let date =
   Option.value_exn (Ptime.of_date_time ((2019,08,23), ((0,0,0),0)))
+
+let raise_on_error f = Deferred.ignore_m (f ())
 
 let rest = [
   Alcotest_async.test_case "instruments" `Quick (fun () ->

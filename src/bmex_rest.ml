@@ -18,11 +18,9 @@ let err =
 let activeInstruments ?buf ?(testnet=false) () =
   let url = if testnet then testnet_url else url in
   let url = Uri.with_path url "/api/v1/instrument/active" in
-  Monitor.try_with_or_error begin fun () ->
-    Fastrest.simple_call_string ~meth:`GET url >>| fun (_resp, body) ->
-    let instrs = Yojson.Safe.(Util.to_list (from_string ?buf body)) in
-    List.map instrs ~f:BT.Instrument.of_yojson
-  end
+  Fastrest.simple_call_string ~meth:`GET url >>| fun (_resp, body) ->
+  let instrs = Yojson.Safe.(Util.to_list (from_string ?buf body)) in
+  List.map instrs ~f:BT.Instrument.of_yojson
 
 let trades ?buf ?(testnet=false)
     ?filter ?columns ?count ?start
@@ -40,11 +38,9 @@ let trades ?buf ?(testnet=false)
   let url = if testnet then testnet_url else url in
   let url = Uri.with_path url "/api/v1/trade" in
   let url = Uri.with_query url query in
-  Monitor.try_with_or_error begin fun () ->
-    Fastrest.simple_call_string ~meth:`GET url >>| fun (_resp, body) ->
-    let instrs = Yojson.Safe.(Util.to_list (from_string ?buf body)) in
-    List.map instrs ~f:BT.Trade.of_yojson
-  end
+  Fastrest.simple_call_string ~meth:`GET url >>| fun (_resp, body) ->
+  let instrs = Yojson.Safe.(Util.to_list (from_string ?buf body)) in
+  List.map instrs ~f:BT.Trade.of_yojson
 
 let tradeHistory ?buf ?(testnet=false)
     ?startTime ?endTime ?start ?count ?symbol ?filter ?reverse ~key ~secret () =
@@ -64,11 +60,9 @@ let tradeHistory ?buf ?(testnet=false)
   let url = Uri.with_query url params in
   let auth_params = Crypto.mk_query_params ~key ~secret ~verb:Get url in
   let headers = Headers.(add_multi empty auth_params) in
-  Monitor.try_with_or_error begin fun () ->
-    Fastrest.simple_call_string ~headers ~meth:`GET url >>| fun (_resp, body) ->
-    let instrs = Yojson.Safe.(Util.to_list (from_string ?buf body)) in
-    List.map instrs ~f:BT.Execution.of_yojson
-  end
+  Fastrest.simple_call_string ~headers ~meth:`GET url >>| fun (_resp, body) ->
+  let instrs = Yojson.Safe.(Util.to_list (from_string ?buf body)) in
+  List.map instrs ~f:BT.Execution.of_yojson
 
 let positions ?buf ?(testnet=false) ?filter ?columns ?count ~key ~secret () =
   let params = List.filter_opt [
@@ -81,11 +75,9 @@ let positions ?buf ?(testnet=false) ?filter ?columns ?count ~key ~secret () =
   let url = Uri.with_query url params in
   let auth_params = Crypto.mk_query_params ~key ~secret ~verb:Get url in
   let headers = Headers.(add_multi empty auth_params) in
-  Monitor.try_with_or_error begin fun () ->
-    Fastrest.simple_call_string ~headers ~meth:`GET url >>| fun (_resp, body) ->
-    let instrs = Yojson.Safe.(Util.to_list (from_string ?buf body)) in
-    List.map instrs ~f:BT.Position.of_yojson
-  end
+  Fastrest.simple_call_string ~headers ~meth:`GET url >>| fun (_resp, body) ->
+  let instrs = Yojson.Safe.(Util.to_list (from_string ?buf body)) in
+  List.map instrs ~f:BT.Position.of_yojson
 
 let openOrders ?buf ?(testnet=false) ?startTime ?endTime
     ?start ?count ?symbol ?filter ?reverse ~key ~secret () =
@@ -103,11 +95,9 @@ let openOrders ?buf ?(testnet=false) ?startTime ?endTime
   let url = Uri.with_query url params in
   let auth_params = Crypto.mk_query_params ~key ~secret ~verb:Get url in
   let headers = Headers.(add_multi empty auth_params) in
-  Monitor.try_with_or_error begin fun () ->
-    Fastrest.simple_call_string ~headers ~meth:`GET url >>| fun (_resp, body) ->
-    let instrs = Yojson.Safe.(Util.to_list (from_string ?buf body)) in
-    List.map instrs ~f:BT.Order.of_yojson
-  end
+  Fastrest.simple_call_string ~headers ~meth:`GET url >>| fun (_resp, body) ->
+  let instrs = Yojson.Safe.(Util.to_list (from_string ?buf body)) in
+  List.map instrs ~f:BT.Order.of_yojson
 
 type order = {
   symbol : string ;
@@ -197,16 +187,14 @@ let submit ?buf ?(testnet=false) ~key ~secret orders =
   let auth_params =
     Crypto.mk_query_params ~key ~secret ~verb:Post ~data:body url in
   let headers = Headers.(add_multi json_base_headers auth_params) in
-  Monitor.try_with_join_or_error begin fun () ->
-    Fastrest.simple_call_string
-      ~body ~headers ~meth:`POST url >>= fun (_resp, body) ->
-    let body_json = Yojson.Safe.from_string ?buf body in
-    try
-      let instrs = Yojson.Safe.Util.to_list body_json in
-      Deferred.Or_error.return (List.map instrs ~f:BT.Order.of_yojson)
-    with _ ->
-      Deferred.Or_error.fail (Yojson_encoding.destruct err body_json)
-  end
+  Fastrest.simple_call_string
+    ~body ~headers ~meth:`POST url >>= fun (_resp, body) ->
+  let body_json = Yojson.Safe.from_string ?buf body in
+  try
+    let instrs = Yojson.Safe.Util.to_list body_json in
+    return (List.map instrs ~f:BT.Order.of_yojson)
+  with _ ->
+    Error.raise (Yojson_encoding.destruct err body_json)
 
 type amend = {
   orderID : Uuidm.t option ;
@@ -257,16 +245,14 @@ let amend ?buf ?(testnet=false) ~key ~secret orders =
   let auth_params =
     Crypto.mk_query_params ~key ~secret ~verb:Put ~data:body url in
   let headers = Headers.(add_multi json_base_headers auth_params) in
-  Monitor.try_with_join_or_error begin fun () ->
-    Fastrest.simple_call_string
-      ~body ~headers ~meth:`PUT url >>= fun (_resp, body) ->
-    let body_json = Yojson.Safe.from_string ?buf body in
-    try
-      let instrs = Yojson.Safe.Util.to_list body_json in
-      Deferred.Or_error.return (List.map instrs ~f:BT.Order.of_yojson)
-    with _ ->
-      Deferred.Or_error.fail (Yojson_encoding.destruct err body_json)
-  end
+  Fastrest.simple_call_string
+    ~body ~headers ~meth:`PUT url >>= fun (_resp, body) ->
+  let body_json = Yojson.Safe.from_string ?buf body in
+  try
+    let instrs = Yojson.Safe.Util.to_list body_json in
+    return (List.map instrs ~f:BT.Order.of_yojson)
+  with _ ->
+    Error.raise (Yojson_encoding.destruct err body_json)
 
 let cancel
     ?buf ?(testnet=false)
@@ -288,16 +274,14 @@ let cancel
   let auth_params =
     Crypto.mk_query_params ~key ~secret ~verb:Delete ~data:body url in
   let headers = Headers.(add_multi json_base_headers auth_params) in
-  Monitor.try_with_join_or_error begin fun () ->
-    Fastrest.simple_call_string
-      ~body ~headers ~meth:`DELETE url >>= fun (_resp, body) ->
-    let body_json = Yojson.Safe.from_string ?buf body in
-    try
-      let instrs = Yojson.Safe.Util.to_list body_json in
-      Deferred.Or_error.return (List.map instrs ~f:BT.Order.of_yojson)
-    with _ ->
-      Deferred.Or_error.fail (Yojson_encoding.destruct err body_json)
-  end
+  Fastrest.simple_call_string
+    ~body ~headers ~meth:`DELETE url >>= fun (_resp, body) ->
+  let body_json = Yojson.Safe.from_string ?buf body in
+  try
+    let instrs = Yojson.Safe.Util.to_list body_json in
+    return (List.map instrs ~f:BT.Order.of_yojson)
+  with _ ->
+    Error.raise (Yojson_encoding.destruct err body_json)
 
 let cancelAll ?buf ?(testnet=false) ?symbol ?filter ?text ~key ~secret () =
   let body = List.filter_opt [
@@ -311,16 +295,14 @@ let cancelAll ?buf ?(testnet=false) ?symbol ?filter ?text ~key ~secret () =
   let auth_params =
     Crypto.mk_query_params ~key ~secret ~verb:Delete ~data:body url in
   let headers = Headers.(add_multi json_base_headers auth_params) in
-  Monitor.try_with_join_or_error begin fun () ->
-    Fastrest.simple_call_string
-      ~body ~headers ~meth:`DELETE url >>= fun (_resp, body) ->
-    let body_json = Yojson.Safe.from_string ?buf body in
-    try
-      let instrs = Yojson.Safe.Util.to_list body_json in
-      Deferred.Or_error.return (List.map instrs ~f:BT.Order.of_yojson)
-    with _ ->
-      Deferred.Or_error.fail (Yojson_encoding.destruct err body_json)
-  end
+  Fastrest.simple_call_string
+    ~body ~headers ~meth:`DELETE url >>= fun (_resp, body) ->
+  let body_json = Yojson.Safe.from_string ?buf body in
+  try
+    let instrs = Yojson.Safe.Util.to_list body_json in
+    return (List.map instrs ~f:BT.Order.of_yojson)
+  with _ ->
+    Error.raise (Yojson_encoding.destruct err body_json)
 
 type cancelAllAfter = {
   now: Ptime.t ;
@@ -343,16 +325,13 @@ let cancelAllAfter ?buf ?(testnet=false) ~key ~secret timeout =
   let auth_params =
     Crypto.mk_query_params ~key ~secret ~verb:Post ~data:body url in
   let headers = Headers.(add_multi json_base_headers auth_params) in
-  Monitor.try_with_join_or_error begin fun () ->
-    Fastrest.simple_call_string
-      ~body ~headers ~meth:`POST url >>= fun (_resp, body) ->
-    let body_json = Yojson.Safe.from_string ?buf body in
-    try
-      Deferred.Or_error.return
-        (Yojson_encoding.destruct caa_encoding body_json)
-    with _ ->
-      Deferred.Or_error.fail (Yojson_encoding.destruct err body_json)
-  end
+  Fastrest.simple_call_string
+    ~body ~headers ~meth:`POST url >>= fun (_resp, body) ->
+  let body_json = Yojson.Safe.from_string ?buf body in
+  try
+    return (Yojson_encoding.destruct caa_encoding body_json)
+  with _ ->
+    Error.raise (Yojson_encoding.destruct err body_json)
 
 let wallet ?buf ?(testnet=false) ~key ~secret ()  =
   let url = if testnet then testnet_url else url in
@@ -360,37 +339,33 @@ let wallet ?buf ?(testnet=false) ~key ~secret ()  =
   let auth_params =
     Crypto.mk_query_params ~key ~secret ~verb:Get url in
   let headers = Headers.(add_multi json_base_headers auth_params) in
-  Monitor.try_with_join_or_error begin fun () ->
-    Fastrest.simple_call_string
-      ~headers ~meth:`GET url >>= fun (_resp, body) ->
-    let body_json = Yojson.Safe.from_string ?buf body in
-    try
-      Deferred.Or_error.return (BT.Wallet.of_yojson body_json)
-    with _ ->
-      Deferred.Or_error.fail (Yojson_encoding.destruct err body_json)
-  end
+  Fastrest.simple_call_string
+    ~headers ~meth:`GET url >>= fun (_resp, body) ->
+  let body_json = Yojson.Safe.from_string ?buf body in
+  try
+    return (BT.Wallet.of_yojson body_json)
+  with _ ->
+    Error.raise (Yojson_encoding.destruct err body_json)
 
 let walletHistory ?buf ?(testnet=false) ?(start=0) ?(count=1000) ~key ~secret () =
   let params = [
-      "start", [Int.to_string start] ;
-      "count", [Int.to_string count] ;
-    ] in
+    "start", [Int.to_string start] ;
+    "count", [Int.to_string count] ;
+  ] in
   let url = if testnet then testnet_url else url in
   let url = Uri.with_path url "/api/v1/user/walletHistory" in
   let url = Uri.with_query url params in
   let auth_params =
     Crypto.mk_query_params ~key ~secret ~verb:Get url in
   let headers = Headers.(add_multi json_base_headers auth_params) in
-  Monitor.try_with_join_or_error begin fun () ->
-    Fastrest.simple_call_string
-      ~headers ~meth:`GET url >>= fun (_resp, body) ->
-    let body_json = Yojson.Safe.from_string ?buf body in
-    try
-      let txs = Yojson.Safe.Util.to_list body_json in
-      Deferred.Or_error.return (List.map txs ~f:BT.Transaction.of_yojson)
-    with _ ->
-      Deferred.Or_error.fail (Yojson_encoding.destruct err body_json)
-  end
+  Fastrest.simple_call_string
+    ~headers ~meth:`GET url >>= fun (_resp, body) ->
+  let body_json = Yojson.Safe.from_string ?buf body in
+  try
+    let txs = Yojson.Safe.Util.to_list body_json in
+    return (List.map txs ~f:BT.Transaction.of_yojson)
+  with _ ->
+    Error.raise (Yojson_encoding.destruct err body_json)
 
 let walletSummary ?buf ?(testnet=false) ~key ~secret ()  =
   let url = if testnet then testnet_url else url in
@@ -398,36 +373,32 @@ let walletSummary ?buf ?(testnet=false) ~key ~secret ()  =
   let auth_params =
     Crypto.mk_query_params ~key ~secret ~verb:Get url in
   let headers = Headers.(add_multi json_base_headers auth_params) in
-  Monitor.try_with_join_or_error begin fun () ->
-    Fastrest.simple_call_string
-      ~headers ~meth:`GET url >>= fun (_resp, body) ->
-    let body_json = Yojson.Safe.from_string ?buf body in
-    try
-      let txs = Yojson.Safe.Util.to_list body_json in
-      Deferred.Or_error.return (List.map txs ~f:BT.Wallet.of_yojson)
-    with _ ->
-      Deferred.Or_error.fail (Yojson_encoding.destruct err body_json)
-  end
+  Fastrest.simple_call_string
+    ~headers ~meth:`GET url >>= fun (_resp, body) ->
+  let body_json = Yojson.Safe.from_string ?buf body in
+  try
+    let txs = Yojson.Safe.Util.to_list body_json in
+    return (List.map txs ~f:BT.Wallet.of_yojson)
+  with _ ->
+    Error.raise (Yojson_encoding.destruct err body_json)
 
 let executionHistory ?buf ?(testnet=false) ~key ~secret ~symbol ~ts ()  =
   let params = [
     "symbol", [symbol] ;
     "timestamp", [Ptime.to_rfc3339 ts] ;
-    ] in
+  ] in
   let url = if testnet then testnet_url else url in
   let url = Uri.with_path url "/api/v1/user/executionHistory" in
   let url = Uri.with_query url params in
   let auth_params =
     Crypto.mk_query_params ~key ~secret ~verb:Get url in
   let headers = Headers.(add_multi json_base_headers auth_params) in
-  Monitor.try_with_join_or_error begin fun () ->
-    Fastrest.simple_call_string
-      ~headers ~meth:`GET url >>= fun (_resp, body) ->
-    let body_json = Yojson.Safe.from_string ?buf body in
-    try
-      let execs = Yojson.Safe.Util.to_list body_json in
-      Deferred.Or_error.return (List.map execs ~f:BT.Execution.of_yojson)
-    with _ ->
-      Deferred.Or_error.fail (Yojson_encoding.destruct err body_json)
-  end
+  Fastrest.simple_call_string
+    ~headers ~meth:`GET url >>= fun (_resp, body) ->
+  let body_json = Yojson.Safe.from_string ?buf body in
+  try
+    let execs = Yojson.Safe.Util.to_list body_json in
+    return (List.map execs ~f:BT.Execution.of_yojson)
+  with _ ->
+    Error.raise (Yojson_encoding.destruct err body_json)
 
