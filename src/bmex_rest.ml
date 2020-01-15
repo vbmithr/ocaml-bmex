@@ -22,6 +22,13 @@ let activeInstruments ?buf ?(testnet=false) () =
   let instrs = Yojson.Safe.(Util.to_list (from_string ?buf body)) in
   List.map instrs ~f:BT.Instrument.of_yojson
 
+let activeAndIndices ?buf ?(testnet=false) () =
+  let url = if testnet then testnet_url else url in
+  let url = Uri.with_path url "/api/v1/instrument/activeAndIndices" in
+  Fastrest.simple_call_string ~meth:`GET url >>| fun (_resp, body) ->
+  let instrs = Yojson.Safe.(Util.to_list (from_string ?buf body)) in
+  List.map instrs ~f:BT.Instrument.of_yojson
+
 let trades ?buf ?(testnet=false)
     ?filter ?columns ?count ?start
     ?reverse ?startTime ?endTime symbol =

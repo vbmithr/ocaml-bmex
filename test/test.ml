@@ -56,6 +56,8 @@ let raise_on_error f = Deferred.ignore_m (f ())
 let rest = [
   Alcotest_async.test_case "instruments" `Quick (fun () ->
       raise_on_error (fun () -> activeInstruments ())) ;
+  Alcotest_async.test_case "instrumentsAndIndices" `Quick (fun () ->
+      raise_on_error (fun () -> activeAndIndices ())) ;
   Alcotest_async.test_case "trades" `Quick (fun () ->
       raise_on_error (fun () -> trades "XBTUSD")) ;
   Alcotest_async.test_case "tradeHistory" `Quick (fun () ->

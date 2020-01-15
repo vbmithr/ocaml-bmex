@@ -8,6 +8,10 @@ val activeInstruments :
   ?buf:Bi_outbuf.t -> ?testnet:bool -> unit ->
   Instrument.t list Deferred.t
 
+val activeAndIndices :
+  ?buf:Bi_outbuf.t -> ?testnet:bool -> unit ->
+  Instrument.t list Deferred.t
+
 val trades :
   ?buf:Bi_outbuf.t ->
   ?testnet:bool ->
