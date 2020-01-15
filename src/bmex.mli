@@ -178,9 +178,9 @@ module Trade : sig
     price: float ;
     tickDirection: Fixtypes.TickDirection.t ;
     trdMatchID: Uuidm.t ;
-    grossValue: int64 ;
-    homeNotional: float ;
-    foreignNotional: float ;
+    grossValue: int64 option ;
+    homeNotional: float option ;
+    foreignNotional: float option ;
   } [@@deriving sexp]
 
   val encoding : t Json_encoding.encoding

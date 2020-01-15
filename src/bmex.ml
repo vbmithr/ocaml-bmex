@@ -384,9 +384,9 @@ module Trade = struct
     price: float ;
     tickDirection: Fixtypes.TickDirection.t ;
     trdMatchID: Uuidm.t ;
-    grossValue: int64 ;
-    homeNotional: float ;
-    foreignNotional: float ;
+    grossValue: int64 option ;
+    homeNotional: float option ;
+    foreignNotional: float option ;
   } [@@deriving sexp]
 
   let encoding =
@@ -408,7 +408,7 @@ module Trade = struct
          (req "price" float)
          (req "tickDirection" tickDirection_encoding)
          (req "trdMatchID" Uuidm.encoding)
-         (req "grossValue" int53)
-         (req "homeNotional" float)
-         (req "foreignNotional" float))
+         (req "grossValue" (option int53))
+         (req "homeNotional" (option float))
+         (req "foreignNotional" (option float)))
 end
