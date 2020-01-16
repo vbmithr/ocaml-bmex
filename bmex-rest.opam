@@ -1,0 +1,24 @@
+opam-version: "2.0"
+authors: "Vincent Bernardoff <vb@luminar.eu.org>"
+maintainer: "Vincent Bernardoff <vb@luminar.eu.org>"
+homepage: "https://github.com/vbmithr/ocaml-bmex"
+bug-reports: "https://github.com/vbmithr/ocaml-bmex/issues"
+dev-repo: "git+https://github.com/vbmithr/ocaml-bmex"
+doc: "https://vbmithr.github.io/ocaml-bmex/doc"
+build: [ "dune" "build" "-j" jobs "-p" name ]
+run-test: [ "dune" "runtest" "-j" jobs "-p" name ]
+depends: [
+  "dune" {>= "1.11.4"}
+  "core" {>= "v0.12.4"}
+  "async" {>= "v0.12.0"}
+  "httpaf" {>= "0.6.5"}
+  "logs-async" {= version}
+  "bmex" {= version}
+  "bitmex-types" {= version}
+  "fastrest" {= version}
+  "logs-async-reporter" {with-test & = version}
+  "alcotest-async" {with-test & >= "0.8.5"}
+]
+synopsis: "BitMEX API"
+description: """
+"""

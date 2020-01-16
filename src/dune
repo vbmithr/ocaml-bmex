@@ -4,12 +4,11 @@
  (modules bmex)
  (preprocess (pps ppx_sexp_conv))
  (libraries
+   sexplib
    fixtypes
    ptime
    ptime.clock.os
    uuidm
-   sexplib
-   hex
    logs
    uri
    digestif.c
@@ -22,10 +21,13 @@
  (modules bmex_rest)
  (preprocess (pps ppx_sexp_conv))
  (libraries
-   fastrest
+   core
+   async
+   httpaf
+   logs-async
    bmex
    bitmex-types
-   logs-async))
+   fastrest))
 
 (library
  (name        bmex_ws)
