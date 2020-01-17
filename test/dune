@@ -11,7 +11,7 @@
  (name ws)
  (modules ws)
  (public_name bmex-ws-cli)
- (package bmex-ws)
+ (package bmex-bin)
  (preprocess (pps ppx_jane))
  (libraries
    core
@@ -25,7 +25,7 @@
  (name fh)
  (modules fh)
  (public_name bmex-ws-fh)
- (package bmex-ws)
+ (package bmex-bin)
  (preprocess (pps ppx_jane))
  (libraries
    core
@@ -39,7 +39,7 @@
  (name compta)
  (modules compta)
  (public_name bmex-compta)
- (package bmex-rest)
+ (package bmex-bin)
  (preprocess (pps ppx_jane))
  (libraries
    logs-async-reporter
