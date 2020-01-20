@@ -1,6 +1,7 @@
 (test
  (name       test)
  (modules    test)
+ (package bmex-rest)
  (preprocess (pps ppx_jane))
  (libraries
   bmex-rest
