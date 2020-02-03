@@ -20,16 +20,16 @@ val trades :
   ?count:int ->
   ?start:int ->
   ?reverse:bool ->
-  ?startTime:Time_ns.t ->
-  ?endTime:Time_ns.t ->
+  ?startTime:Ptime.t ->
+  ?endTime:Ptime.t ->
   string ->
   Trade.t list Deferred.t
 
 val tradeHistory :
   ?buf:Bi_outbuf.t ->
   ?testnet:bool ->
-  ?startTime:Time_ns.t ->
-  ?endTime:Time_ns.t ->
+  ?startTime:Ptime.t ->
+  ?endTime:Ptime.t ->
   ?start:int ->
   ?count:int ->
   ?symbol:string ->
@@ -97,8 +97,8 @@ val positions :
 val openOrders :
   ?buf:Bi_outbuf.t ->
   ?testnet:bool ->
-  ?startTime:Time_ns.t ->
-  ?endTime:Time_ns.t ->
+  ?startTime:Ptime.t ->
+  ?endTime:Ptime.t ->
   ?start:int ->
   ?count:int ->
   ?symbol:string ->

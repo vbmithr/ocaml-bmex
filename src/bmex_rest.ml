@@ -39,23 +39,27 @@ let trades ?buf ?(testnet=false)
       Option.map count ~f:(fun start -> "count", [Int.to_string start]) ;
       Option.map start ~f:(fun start -> "start", [Int.to_string start]) ;
       Option.map reverse ~f:(fun rev -> "reverse", [Bool.to_string rev]) ;
-      Option.map startTime ~f:(fun ts -> "startTime", [Time_ns.to_string ts]) ;
-      Option.map endTime ~f:(fun ts -> "endTime", [Time_ns.to_string ts]) ;
+      Option.map startTime ~f:(fun ts -> "startTime", [Ptime.to_rfc3339 ts]) ;
+      Option.map endTime ~f:(fun ts -> "endTime", [Ptime.to_rfc3339 ts]) ;
     ] in
   let url = if testnet then testnet_url else url in
   let url = Uri.with_path url "/api/v1/trade" in
   let url = Uri.with_query url query in
-  Fastrest.simple_call_string ~meth:`GET url >>| fun (_resp, body) ->
-  let instrs = Yojson.Safe.(Util.to_list (from_string ?buf body)) in
-  List.map instrs ~f:BT.Trade.of_yojson
+  Fastrest.simple_call_string ~meth:`GET url >>= fun (_resp, body) ->
+  try
+    let instrs = Yojson.Safe.(Util.to_list (from_string ?buf body)) in
+    return (List.map instrs ~f:BT.Trade.of_yojson)
+  with exn ->
+    eprintf "%s" body ;
+    raise exn
 
 let tradeHistory ?buf ?(testnet=false)
     ?startTime ?endTime ?start ?count ?symbol ?filter ?reverse ~key ~secret () =
   Option.iter start ~f:(fun start -> if start < 0 then invalid_arg "tradeHistory: start < 0") ;
   Option.iter count ~f:(fun count -> if count < 1 || count > 500 then invalid_arg "tradeHistory: count < 1 || count > 500") ;
   let params = List.filter_opt [
-      Option.map startTime ~f:(fun ts -> "startTime", [Time_ns.to_string ts]) ;
-      Option.map endTime ~f:(fun ts -> "endTime", [Time_ns.to_string ts]) ;
+      Option.map startTime ~f:(fun ts -> "startTime", [Ptime.to_rfc3339 ts]) ;
+      Option.map endTime ~f:(fun ts -> "endTime", [Ptime.to_rfc3339 ts]) ;
       Option.map start ~f:(fun start -> "start", [Int.to_string start]) ;
       Option.map count ~f:(fun start -> "count", [Int.to_string start]) ;
       Option.map symbol ~f:(fun symbol -> "symbol", [symbol]) ;
@@ -89,8 +93,8 @@ let positions ?buf ?(testnet=false) ?filter ?columns ?count ~key ~secret () =
 let openOrders ?buf ?(testnet=false) ?startTime ?endTime
     ?start ?count ?symbol ?filter ?reverse ~key ~secret () =
   let params = List.filter_opt [
-      Option.map startTime ~f:(fun ts -> "startTime", [Time_ns.to_string ts]) ;
-      Option.map endTime ~f:(fun ts -> "endTime", [Time_ns.to_string ts]) ;
+      Option.map startTime ~f:(fun ts -> "startTime", [Ptime.to_rfc3339 ts]) ;
+      Option.map endTime ~f:(fun ts -> "endTime", [Ptime.to_rfc3339 ts]) ;
       Option.map start ~f:(fun start -> "start", [Int.to_string start]) ;
       Option.map count ~f:(fun start -> "count", [Int.to_string start]) ;
       Option.map symbol ~f:(fun symbol -> "symbol", [symbol]) ;
