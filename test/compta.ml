@@ -6,22 +6,6 @@ let src = Logs.Src.create "bmex.compta"
 module Log = (val Logs.src_log src : Logs.LOG)
 module Log_async = (val Logs_async.src_log src : Logs_async.LOG)
 
-module Cfg = struct
-  type cfg = {
-    key: string ;
-    secret: string ;
-    passphrase: string [@default ""];
-    quote: (string * int) list [@default []];
-  } [@@deriving sexp]
-
-  type t = (string * cfg) list [@@deriving sexp]
-end
-
-let default_cfg = Filename.concat (Option.value_exn (Sys.getenv "HOME")) ".virtu"
-let cfg =
-  List.Assoc.find_exn ~equal:String.equal
-    (Sexplib.Sexp.load_sexp_conv_exn default_cfg Cfg.t_of_sexp) "BMEXT"
-
 (* let url = Uri.make ~scheme:"unix+kdb" ~path:"/tmp/kx.5042" () *)
 let url = Uri.make ~scheme:"unix+kdb" ~host:"localhost" ~port:5042 ()
 
@@ -73,11 +57,17 @@ let kx_of_transfers transfers =
   Kx_async.create (t3 (a sym) (a sym) transfersw)
     ("upd", "transfers", (times, syms, xchs, kinds, statuses, refids, txids, addrs, amounts, fees))
 
+let key, secret =
+  match String.split ~on:':' (Sys.getenv_exn "TOKEN_BMEXT") with
+  | [key; secret] -> key, secret
+  | _ -> assert false
+
 let retrieveTransfers w =
   let rec inner start =
-    Bmex_rest.walletHistory ~testnet:true ~key:cfg.key ~secret:cfg.secret ~start ~count:10000 () >>= fun txs ->
+    Bmex_rest.walletHistory
+      ~testnet:true ~key ~secret ~start ~count:10000 () >>= fun txs ->
     match List.length txs with
-    | 0 -> Deferred.Or_error.return ()
+    | 0 -> Deferred.unit
     | len ->
       Log_async.app (fun m -> m "Found %d txs" len) >>= fun () ->
       Pipe.write w (kx_of_transfers txs) >>= fun () ->
@@ -85,19 +75,66 @@ let retrieveTransfers w =
   in
   inner 0
 
-let main () =
-  Kx_async.with_connection url begin fun _ w ->
-    retrieveTransfers w
-  end >>= function
-  | Error e -> Error.raise e
-  | Ok _ -> Deferred.unit
+let indexw =
+  Kx.(t3 (v sym) (v timestamp) (v float))
+
+let kx_of_index idxVals =
+  let open Kx in
+  let len = List.length idxVals in
+  let syms = Array.create ~len "" in
+  let origTss = Array.create ~len Ptime.epoch in
+  let pxs = Array.create ~len Kx.nf in
+  List.iteri idxVals ~f:begin fun i (t: Trade.t) ->
+    syms.(i) <- t.symbol ;
+    origTss.(i) <- t.timestamp ;
+    Option.iter t.price ~f:(fun v -> pxs.(i) <- v) ;
+  end ;
+  Kx_async.create (t3 (a sym) (a sym) indexw)
+    (".u.upd", "index", (syms, origTss, pxs))
+
+let retrieveIndex w symbol =
+  let rec inner startTime =
+    Bmex_rest.trades ~reverse:true ~startTime
+      ~testnet:false ~count:1000 symbol >>= function
+    | [] -> Deferred.unit
+    | (h :: _) as idxVals ->
+      let len = List.length idxVals in
+      Log_async.app begin fun m ->
+        m "Found %d idx values (%a)" len Ptime.pp h.timestamp
+      end >>= fun () ->
+      Pipe.write w (kx_of_index (List.rev idxVals)) >>= fun () ->
+      let nextTs = Caml.Option.get @@
+          Ptime.add_span h.timestamp (Ptime.Span.of_int_s 1) in
+      inner nextTs
+  in
+  let startTime =
+    match Ptime.of_rfc3339 (Sys.getenv_exn "STARTTIME") with
+    | Ok (a, _, _) -> a
+    | _ -> assert false in
+  inner startTime
 
 let () =
   Logs.set_reporter (Logs_async_reporter.reporter ()) ;
-  Command.async ~summary:"BMEX kdb+ compta" begin
-    let open Command.Let_syntax in
-    [%map_open
-      let () = Logs_async_reporter.set_level_via_param [] in
-      fun () -> main ()
-    ] end |>
-  Command.run
+  Command.group ~summary:"bmex army knife" [
+    "compta",
+    (Command.async ~summary:"Accounting experiment" begin
+        let open Command.Let_syntax in
+        [%map_open
+          let () = Logs_async_reporter.set_level_via_param [] in
+          fun () ->
+            Kx_async.with_connection url (fun _ w -> retrieveTransfers w)
+        ] end) ;
+    "index",
+    (Command.async ~summary:"Store historical indices in DB" begin
+        let open Command.Let_syntax in
+        [%map_open
+          let () = Logs_async_reporter.set_level_via_param []
+          and symbols = anon (sequence ("symbol" %: string)) in
+          fun () ->
+            let url = Uri.make
+                ~userinfo:"tickerplant:pass"
+                ~scheme:"kdb" ~host:"localhost" ~port:6000 () in
+            Kx_async.with_connection url (fun _ w ->
+            Deferred.List.iter symbols ~f:(fun symbol -> retrieveIndex w symbol))
+        ] end) ;
+  ] |> Command.run
