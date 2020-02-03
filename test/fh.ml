@@ -36,14 +36,14 @@ let longopt =
   let open Kx in
   conv
     (function Some i -> Int64.of_int i | None -> nj)
-    (function | i when i = nj -> None | i -> Some (Int64.to_int_exn i))
+    (function | i when Int64.equal i nj -> None | i -> Some (Int64.to_int_exn i))
     (a long)
 
 let flopt =
   let open Kx in
   conv
     (function Some i -> i | None -> nf)
-    (function | i when i = nf -> None | i -> Some i)
+    (function | i when Float.equal i nf -> None | i -> Some i)
     (a float)
 
 let row =

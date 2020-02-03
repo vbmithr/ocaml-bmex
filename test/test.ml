@@ -7,7 +7,7 @@ let wrap_request
     ?(speed=`Quick) n service =
   Alcotest_async.test_case ~timeout n speed begin fun () ->
     (Fastrest.request service) |>
-    Deferred.Or_error.ignore |>
+    Deferred.Or_error.ignore_m |>
     Deferred.Or_error.ok_exn
   end
 
@@ -16,7 +16,7 @@ let wrap_request_light
     ?(speed=`Quick) n f =
   Alcotest_async.test_case ~timeout n speed begin fun () ->
     f () |>
-    Deferred.ignore
+    Deferred.ignore_m
   end
 
 let key, secret =
