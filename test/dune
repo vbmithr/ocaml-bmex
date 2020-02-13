@@ -5,8 +5,7 @@
  (preprocess (pps ppx_jane))
  (libraries
   bmex-rest
-  alcotest-async
-  logs-async-reporter))
+  alcotest-async))
 
 (executable
  (name ws)

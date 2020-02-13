@@ -16,8 +16,7 @@ depends: [
   "bmex" {= version}
   "bitmex-types" {= version}
   "fastrest" {= version}
-  "logs-async-reporter" {with-test & = version}
-  "alcotest-async" {with-test & >= "0.8.5"}
+  "alcotest-async" {with-test & >= "1.0.0"}
 ]
 synopsis: "BitMEX API"
 description: """
